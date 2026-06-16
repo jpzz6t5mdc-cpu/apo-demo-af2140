@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0f1419" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>1軒タップ記録</title>
+
+<!-- 地図ライブラリ：Leaflet（unpkg CDN・無料・キー不要） -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  :root{
+    --bg:#0f1419;        /* 背景（落ち着いたダーク） */
+    --panel:#1a2129;     /* カード */
+    --panel2:#222b35;    /* 一段明るいカード */
+    --line:#2c3742;      /* 仕切り線 */
+    --text:#e7edf3;      /* 文字 */
+    --muted:#93a1ad;     /* 控えめ文字 */
+    --accent:#3da9fc;    /* 青（主役ボタン） */
+    --good:#3ddc97;      /* 緑（アポ） */
+    --warn:#f4a259;      /* オレンジ */
+    --radius:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    -webkit-text-size-adjust:100%;
+    line-height:1.5;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:14px 14px 40px 14px;}
+
+  /* 見出し */
+  .head{display:flex;align-items:center;gap:10px;margin:4px 2px 12px 2px;}
+  .head h1{font-size:18px;margin:0;font-weight:700;}
+  .head .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  /* 今日の集計（控えめ・煽らない） */
+  .tally{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px 10px;margin-bottom:14px;
+  }
+  .tally .cell{text-align:center;}
+  .tally .num{font-size:22px;font-weight:700;}
+  .tally .lab{font-size:11px;color:var(--muted);margin-top:2px;}
+
+  /* 主役の大ボタン */
+  .bigbtn{
+    width:100%;border:none;border-radius:var(--radius);
+    background:var(--accent);color:#04121f;
+    font-size:22px;font-weight:800;padding:26px 16px;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    cursor:pointer;box-shadow:0 6px 18px rgba(61,169,252,.25);
+    transition:transform .06s ease, filter .15s ease;
+  }
+  .bigbtn:active{transform:scale(.98);filter:brightness(.95);}
+  .bigbtn[disabled]{opacity:.6;filter:grayscale(.3);}
+  .bigbtn .emoji{font-size:26px;}
+
+  /* 状態表示 */
+  .status{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 14px;margin-top:12px;font-size:13px;color:var(--muted);
+    min-height:20px;
+  }
+  .status b{color:var(--text);}
+  .status .sample{color:var(--warn);font-weight:700;}
+
+  /* 位置の数値 */
+  .geo{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;
+  }
+  .geo .g{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;}
+  .geo .g .k{font-size:11px;color:var(--muted);}
+  .geo .g .v{font-size:15px;font-weight:700;margin-top:2px;}
+
+  /* 結果チップ */
+  .chips-title{font-size:14px;color:var(--text);font-weight:700;margin:18px 2px 8px;}
+  .chips{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .chip{
+    border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    border-radius:14px;padding:18px 12px;font-size:17px;font-weight:700;
+    cursor:pointer;text-align:center;transition:transform .06s ease, background .15s ease;
+  }
+  .chip:active{transform:scale(.97);}
+  .chip.apo{grid-column:1 / -1;background:#11332a;border-color:#1e5c49;color:var(--good);}
+  .chips[aria-disabled="true"]{opacity:.4;pointer-events:none;}
+
+  /* 地図 */
+  .map-wrap{margin-top:18px;}
+  .map-note{font-size:11px;color:var(--muted);margin:0 2px 6px;}
+  #map{width:100%;height:230px;border-radius:var(--radius);border:1px solid var(--line);background:#0a0f14;}
+
+  /* 記録リスト */
+  .list-title{font-size:14px;font-weight:700;margin:20px 2px 8px;display:flex;justify-content:space-between;align-items:center;}
+  .addmiss{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;padding:4px;}
+  .list{display:flex;flex-direction:column;gap:8px;}
+  .row{
+    display:flex;align-items:center;gap:10px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+  }
+  .row .time{font-weight:700;font-size:14px;min-width:46px;}
+  .row .res{font-size:14px;flex:1;}
+  .row .acc{font-size:12px;color:var(--muted);}
+  .row .miss{color:var(--warn);font-size:11px;border:1px solid var(--warn);border-radius:8px;padding:1px 6px;}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:18px;}
+
+  /* 取り消し */
+  .undo{
+    width:100%;margin-top:10px;background:none;border:1px dashed var(--line);
+    color:var(--muted);border-radius:12px;padding:12px;font-size:14px;cursor:pointer;
+  }
+  .undo[disabled]{opacity:.35;}
+
+  /* 開示文 */
+  .disclose{
+    margin-top:22px;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px;font-size:12px;color:var(--muted);line-height:1.6;
+  }
+  .disclose b{color:var(--text);}
+
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+    background:#11332a;color:var(--good);border:1px solid #1e5c49;
+    padding:12px 18px;border-radius:12px;font-weight:700;font-size:15px;
+    opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:9999;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <span style="font-size:26px;">🏠</span>
+    <div>
+      <h1>1軒タップ記録</h1>
+      <div class="sub">報告書は書かない。1軒まわるごとに1タップだけ。</div>
+    </div>
+  </div>
+
+  <!-- 今日の集計（保存のたび増える・控えめ） -->
+  <div class="tally" aria-label="今日の集計">
+    <div class="cell"><div class="num" id="t_visit">0</div><div class="lab">訪問</div></div>
+    <div class="cell"><div class="num" id="t_talk">0</div><div class="lab">話せた</div></div>
+    <div class="cell"><div class="num" id="t_lead">0</div><div class="lab">見込み</div></div>
+    <div class="cell"><div class="num" id="t_apo">0</div><div class="lab">アポ</div></div>
+  </div>
+
+  <!-- 主役ボタン -->
+  <button class="bigbtn" id="recordBtn">
+    <span class="emoji">📍</span><span>この家を記録</span>
+  </button>
+
+  <div class="status" id="status">ボタンを押すと、今いる場所と時刻を記録します。</div>
+
+  <!-- 位置の数値 -->
+  <div class="geo">
+    <div class="g"><div class="k">緯度</div><div class="v" id="g_lat">—</div></div>
+    <div class="g"><div class="k">経度</div><div class="v" id="g_lng">—</div></div>
+    <div class="g"><div class="k">誤差</div><div class="v" id="g_acc">—</div></div>
+    <div class="g"><div class="k">時刻</div><div class="v" id="g_time">—</div></div>
+  </div>
+
+  <!-- 結果チップ（位置確定後だけ押せる） -->
+  <div class="chips-title">この家、どうだった？（1つ選ぶと保存）</div>
+  <div class="chips" id="chips" aria-disabled="true">
+    <div class="chip" data-code="rusu">留守</div>
+    <div class="chip" data-code="kotowari">断られた</div>
+    <div class="chip" data-code="hanaseta">話せた</div>
+    <div class="chip" data-code="mikomi">見込みあり</div>
+    <div class="chip apo" data-code="apo">🎯 アポ獲得</div>
+  </div>
+
+  <!-- 航空写真マップ -->
+  <div class="map-wrap">
+    <p class="map-note">航空写真（屋根を上から確認＝太陽光パネルの有無が見える）／提供：国土地理院</p>
+    <div id="map"></div>
+  </div>
+
+  <!-- 記録リスト -->
+  <div class="list-title">
+    <span>今日の記録</span>
+    <button class="addmiss" id="addMissBtn">＋ タップ忘れを手で足す</button>
+  </div>
+  <div class="list" id="list"><div class="empty">まだ記録はありません。</div></div>
+  <button class="undo" id="undoBtn" disabled>↩ 直前の1件を取り消す</button>
+
+  <!-- 隠さない原則 -->
+  <div class="disclose">
+    <b>正直な鏡</b>：記録するのはタップした“点”だけ（位置・時刻・精度・結果）。
+    常時追跡はしません。あなたも自分の記録を見られます。罰のためでなく、自分の足あとのためです。
+  </div>
+
+</div>
+
+<div class="toast" id="toast">保存しました</div>
+
+<script>
+/* =========================================================================
+   1タップ＝1レコード。画面内の配列 records[] に1行ずつ push する。
+   1レコードの形（★本番DBとの対応）：
+     { lat, lng, acc, dev_time, result, mock }
+       lat      … 緯度
+       lng      … 経度
+       acc      … 誤差(m) … geolocation の accuracy
+       dev_time … 端末時刻（ISO文字列）
+       result   … 結果コード（rusu/kotowari/hanaseta/mikomi/apo/te_oshi）
+       mock     … 偽装の疑い印（今は false 固定。将来：精度劣悪/同一点連打などで判定）
+   ★本番では、この1レコードを 背骨v3 の activity_log に「1行追加」するだけ。
+     結果コードは activity_log に TEXT 列を1本足すだけで載る＝スキーマ凍結は不要。
+     →差し替えポイントは saveRecord() 内の「★API送信ポイント」コメント箇所。
+   ========================================================================= */
+
+// 結果コード → 表示名
+var RESULT_LABEL = {
+  rusu:"留守", kotowari:"断られた", hanaseta:"話せた",
+  mikomi:"見込みあり", apo:"🎯アポ獲得", te_oshi:"手で追加"
+};
+
+// サンプル位置（東京近郊の住宅地・フォールバック用）
+var SAMPLE = { lat:35.7008, lng:139.5503, acc:35 };
+
+var records = [];        // 画面内の保存先（=本番はDB activity_log）
+var pending = null;      // 位置確定後、結果待ちの一時データ
+var map, marker;
+
+// --- 地図の用意（国土地理院 航空写真タイル・キー不要・無料） ---
+function initMap(){
+  map = L.map('map', { zoomControl:true, attributionControl:true })
+         .setView([SAMPLE.lat, SAMPLE.lng], 18);
+  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+    maxZoom: 18,
+    minZoom: 14,
+    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>'
+  }).addTo(map);
+  // 描画ズレ対策
+  setTimeout(function(){ map.invalidateSize(); }, 300);
+}
+
+// --- 地図に今の点を置く（屋根が見えるズーム z18 目安） ---
+function showOnMap(lat, lng){
+  if(!map) return;
+  map.setView([lat, lng], 18);
+  if(marker){ marker.setLatLng([lat, lng]); }
+  else { marker = L.marker([lat, lng]).addTo(map); }
+}
+
+// --- 時刻表示用 ---
+function hhmm(d){
+  return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+}
+
+// --- 主役ボタン：現在地を取る ---
+function getLocation(){
+  var btn = document.getElementById('recordBtn');
+  var st  = document.getElementById('status');
+  btn.disabled = true;
+  st.innerHTML = '今いる場所を確認しています…';
+
+  if(!navigator.geolocation){
+    // 端末が位置情報に対応していない → サンプルへ
+    useSample('この端末では位置が取れないため');
+    btn.disabled = false;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos){ // 成功
+      var c = pos.coords;
+      setPending(c.latitude, c.longitude, c.accuracy, false, '');
+      btn.disabled = false;
+    },
+    function(err){ // 失敗（許可拒否 / file:// / 非HTTPS など）
+      useSample('位置が取れなかったため（許可拒否・HTTPSでない等）');
+      btn.disabled = false;
+    },
+    { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
+  );
+}
+
+// --- サンプル位置にフォールバック（試作が必ず動くように） ---
+function useSample(reason){
+  // 住宅地らしく少しだけランダムにずらす
+  var lat = SAMPLE.lat + (Math.random()-0.5)*0.0008;
+  var lng = SAMPLE.lng + (Math.random()-0.5)*0.0008;
+  setPending(lat, lng, SAMPLE.acc, true, reason);
+}
+
+// --- 位置を確定して「結果待ち」にする ---
+function setPending(lat, lng, acc, isSample, reason){
+  var now = new Date();
+  pending = {
+    lat: lat, lng: lng,
+    acc: Math.round(acc),
+    dev_time: now.toISOString(),
+    timeLabel: hhmm(now),
+    isSample: isSample
+  };
+
+  document.getElementById('g_lat').textContent = lat.toFixed(6);
+  document.getElementById('g_lng').textContent = lng.toFixed(6);
+  document.getElementById('g_acc').textContent = '約' + Math.round(acc) + 'm';
+  document.getElementById('g_time').textContent = pending.timeLabel;
+
+  var st = document.getElementById('status');
+  if(isSample){
+    st.innerHTML = '<span class="sample">サンプル位置（本番はHTTPSで実測）</span><br>'
+                 + '<span style="font-size:12px;">理由：'+reason+'</span><br>'
+                 + '位置が確定しました。<b>下のボタンで結果を選んでください。</b>';
+  } else {
+    st.innerHTML = '位置が確定しました（誤差 約'+Math.round(acc)+'m）。<b>下のボタンで結果を選んでください。</b>';
+  }
+
+  showOnMap(lat, lng);
+  setChipsEnabled(true);
+}
+
+// --- 結果チップの有効/無効 ---
+function setChipsEnabled(on){
+  document.getElementById('chips').setAttribute('aria-disabled', on ? 'false' : 'true');
+}
+
+// --- 結果チップを押す＝1件保存 ---
+function chooseResult(code){
+  if(!pending) return;
+  var rec = {
+    lat: pending.lat,
+    lng: pending.lng,
+    acc: pending.acc,
+    dev_time: pending.dev_time,
+    result: code,
+    mock: false   // 偽装印（将来：精度が極端に悪い/同一点連打などで自動判定）
+  };
+  saveRecord(rec, pending.timeLabel, pending.isSample);
+
+  // 後始末（次の家へ）
+  pending = null;
+  setChipsEnabled(false);
+  document.getElementById('status').innerHTML =
+    '保存しました。次の家でまた <b>「この家を記録」</b> を押してください。';
+}
+
+// --- 保存（配列push＋画面更新） ---
+function saveRecord(rec, timeLabel, isSample){
+  rec._timeLabel = timeLabel || hhmm(new Date());
+  rec._isSample = !!isSample;
+  records.push(rec);
+
+  /* ★API送信ポイント（本番）：ここで rec を背骨v3 activity_log に1行POSTする。
+     例）fetch('/api/activity_log', {method:'POST', body:JSON.stringify(rec)});
+     失敗時はローカル保持→再送、で取りこぼし0に。今は画面内配列のみ。 */
+
+  renderList();
+  renderTally();
+  document.getElementById('undoBtn').disabled = false;
+  toast(rec.result==='apo' ? '🎯 アポを記録しました' : '保存しました');
+}
+
+// --- 直前1件を取り消す（罰しない運用・押し間違い救済） ---
+function undoLast(){
+  if(records.length===0) return;
+  records.pop();
+  renderList();
+  renderTally();
+  if(records.length===0) document.getElementById('undoBtn').disabled = true;
+  toast('1件取り消しました');
+}
+
+// --- タップ忘れを後から手で足す ---
+function addMissed(){
+  var code = prompt('後から足す結果を番号で：\n1 留守 / 2 断られた / 3 話せた / 4 見込みあり / 5 アポ獲得','3');
+  var map5 = {'1':'rusu','2':'kotowari','3':'hanaseta','4':'mikomi','5':'apo'};
+  var code2 = map5[(code||'').trim()];
+  if(!code2) return;
+  var hhmmIn = prompt('時刻（例 16:42 / 空欄なら今）', hhmm(new Date())) || hhmm(new Date());
+  var now = new Date();
+  var rec = {
+    lat: pending ? pending.lat : SAMPLE.lat,
+    lng: pending ? pending.lng : SAMPLE.lng,
+    acc: pending ? pending.acc : SAMPLE.acc,
+    dev_time: now.toISOString(),
+    result: code2,
+    mock: false,
+    hand_added: true   // 手で足した印（位置は推定）
+  };
+  saveRecord(rec, hhmmIn, true);
+}
+
+// --- 記録リスト描画（直近を上に・数件） ---
+function renderList(){
+  var el = document.getElementById('list');
+  if(records.length===0){ el.innerHTML = '<div class="empty">まだ記録はありません。</div>'; return; }
+  var html = '';
+  var recent = records.slice(-6).reverse(); // 直近6件
+  for(var i=0;i<recent.length;i++){
+    var r = recent[i];
+    var tag = '';
+    if(r.hand_added) tag = '<span class="miss">手で追加</span>';
+    else if(r._isSample) tag = '<span class="miss">サンプル</span>';
+    html += '<div class="row">'
+          + '<span class="time">'+r._timeLabel+'</span>'
+          + '<span class="res">'+RESULT_LABEL[r.result]+'</span>'
+          + (tag ? tag : '<span class="acc">誤差'+r.acc+'m</span>')
+          + '</div>';
+  }
+  el.innerHTML = html;
+}
+
+// --- 今日の集計（控えめ・煽らない／点数ゲームなし） ---
+function renderTally(){
+  var visit = records.length;
+  var talk=0, lead=0, apo=0;
+  for(var i=0;i<records.length;i++){
+    var c = records[i].result;
+    if(c==='hanaseta'||c==='mikomi'||c==='apo') talk++;     // 話せた以上
+    if(c==='mikomi'||c==='apo') lead++;                     // 見込み以上
+    if(c==='apo') apo++;
+  }
+  document.getElementById('t_visit').textContent = visit;
+  document.getElementById('t_talk').textContent  = talk;
+  document.getElementById('t_lead').textContent  = lead;
+  document.getElementById('t_apo').textContent   = apo;
+}
+
+// --- トースト ---
+var toastTimer;
+function toast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1600);
+}
+
+// --- イベント結線 ---
+window.addEventListener('load', function(){
+  initMap();
+  document.getElementById('recordBtn').addEventListener('click', getLocation);
+  document.getElementById('undoBtn').addEventListener('click', undoLast);
+  document.getElementById('addMissBtn').addEventListener('click', addMissed);
+  var chips = document.querySelectorAll('#chips .chip');
+  for(var i=0;i<chips.length;i++){
+    chips[i].addEventListener('click', function(){
+      if(document.getElementById('chips').getAttribute('aria-disabled')==='true') return;
+      chooseResult(this.getAttribute('data-code'));
+    });
+  }
+});
+</script>
+</body>
+</html>

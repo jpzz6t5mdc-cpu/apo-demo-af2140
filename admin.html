@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>足あとマップ（管理者だけが見る画面）</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+  :root{
+    --bg:#14161c; --card:#1e2230; --card2:#252a3d; --line:#343b55;
+    --txt:#e8eaf2; --sub:#9aa3c0; --accent:#5b8cff;
+    --ok:#3ddc97; --wait:#ffc857; --red:#ff6b6b; --gray:#8a93ad;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:var(--bg); color:var(--txt);
+    font-family:"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.7;}
+  body{padding:18px 14px 70px;}
+  .wrap{max-width:1040px; margin:0 auto;}
+
+  /* ヘッダー */
+  header{display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:6px;}
+  h1{font-size:21px; line-height:1.3;}
+  .sub{color:var(--sub); font-size:13px; margin-bottom:14px;}
+  .badges{display:flex; flex-wrap:wrap; gap:8px; margin-left:auto;}
+  .badge{font-size:12px; padding:5px 11px; border-radius:99px; border:1px solid var(--line); white-space:nowrap;}
+  .badge.warn{border-color:var(--wait); color:var(--wait); background:rgba(255,200,87,.08);}
+  .badge.info{border-color:var(--accent); color:var(--accent); background:rgba(91,140,255,.08);}
+
+  .mirror{background:linear-gradient(135deg,#202a45,#1e2230);
+    border:1px solid var(--accent); border-radius:12px; padding:11px 14px;
+    font-size:13.5px; margin-bottom:16px;}
+  .mirror b{color:#cfe0ff;}
+
+  /* フィルタ */
+  .filter{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;}
+  .filter .lbl{font-size:12.5px; color:var(--sub);}
+  .chip{font-size:13px; padding:6px 13px; border-radius:99px; cursor:pointer;
+    border:1.5px solid var(--line); background:var(--card2); color:var(--txt); transition:.15s;}
+  .chip:hover{border-color:var(--accent);}
+  .chip.on{border-color:var(--accent); background:rgba(91,140,255,.15); color:#cfe0ff; font-weight:700;}
+  .chip.toggle.off{opacity:.4;}
+
+  /* 地図 */
+  #map{height:420px; width:100%; border-radius:14px; border:1px solid var(--line);
+    margin-bottom:8px; background:#0f1117; z-index:1;}
+  .leaflet-popup-content-wrapper{background:#1e2230; color:var(--txt); border:1px solid var(--line);
+    border-radius:10px;}
+  .leaflet-popup-tip{background:#1e2230;}
+  .leaflet-popup-content{font-size:12.5px; line-height:1.6; margin:9px 12px;}
+  .leaflet-container{font-family:inherit;}
+  .pop-title{font-weight:700; font-size:13px; margin-bottom:3px;}
+  .pop-row{color:var(--sub); font-size:11.5px;}
+  .pop-tag{display:inline-block; font-size:11px; padding:1px 7px; border-radius:99px; margin-top:4px;}
+
+  /* ピン横の常時コメント（航空写真の上でも読めるよう白フチ＋黒地） */
+  .leaflet-tooltip.foot-label, .leaflet-tooltip.prospect-label{
+    background:rgba(20,22,28,.82); color:#eef1fb; border:1px solid rgba(255,255,255,.55);
+    border-radius:7px; padding:2px 7px; font-size:11.5px; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.5);
+    white-space:nowrap;}
+  .leaflet-tooltip.foot-label{font-weight:600; color:#cfd8f0; font-size:11px;}
+  .leaflet-tooltip.foot-label::before, .leaflet-tooltip.prospect-label::before{display:none;}
+  /* 見込み客ピンのアイコン（◆☀▲）＝足あとの丸ピンとは別の見た目・白フチで沈まない */
+  .prospect-icon span{font-size:22px; line-height:26px; text-align:center; display:block;
+    text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px rgba(0,0,0,.6);}
+
+  /* 凡例 */
+  .legend{display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12.5px; color:var(--sub);
+    background:var(--card); border:1px solid var(--line); border-radius:10px; padding:9px 13px; margin-bottom:18px;}
+  .dot{display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:5px; vertical-align:-1px; border:1.5px solid rgba(255,255,255,.5);}
+  .dot.ok{background:var(--ok);} .dot.gray{background:var(--gray);}
+  .dot.wait{background:var(--wait);} .dot.red{background:var(--red);}
+  .ring{display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:5px; vertical-align:-1px; border:2px dashed var(--accent); background:rgba(91,140,255,.12);}
+
+  /* カード */
+  h2{font-size:16px; margin:24px 0 10px; padding-left:10px; border-left:4px solid var(--accent);}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:14px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:15px 16px; cursor:pointer; transition:.15s;}
+  .card:hover{border-color:var(--accent);}
+  .card.focus{border-color:var(--accent); box-shadow:0 0 0 2px rgba(91,140,255,.3);}
+  .card-head{display:flex; align-items:center; gap:9px; margin-bottom:11px;}
+  .pin{width:14px; height:14px; border-radius:50%; flex:none; border:2px solid rgba(255,255,255,.55);}
+  .name{font-size:15.5px; font-weight:700;}
+  .role{font-size:12px; color:var(--sub);}
+  .verdict{margin-left:auto; font-size:12.5px; font-weight:700; padding:4px 11px; border-radius:99px; white-space:nowrap;}
+  .v-ok{color:var(--ok); border:1px solid var(--ok); background:rgba(61,220,151,.1);}
+  .v-warn{color:var(--wait); border:1px solid var(--wait); background:rgba(255,200,87,.1);}
+  .v-red{color:var(--red); border:1px solid var(--red); background:rgba(255,107,107,.1);}
+
+  .kpis{display:flex; gap:8px; margin-bottom:12px;}
+  .kpi{flex:1; background:var(--card2); border:1px solid var(--line); border-radius:10px; padding:8px 6px; text-align:center;}
+  .kpi .n{font-size:19px; font-weight:700;}
+  .kpi .t{font-size:11px; color:var(--sub);}
+
+  .reasons{font-size:13px;}
+  .reasons .hd{font-size:12px; color:var(--sub); margin-bottom:5px;}
+  .reasons ul{list-style:none; display:flex; flex-direction:column; gap:6px;}
+  .reasons li{display:flex; gap:7px; align-items:flex-start; background:var(--card2); border:1px solid var(--line); border-radius:9px; padding:7px 10px; line-height:1.5;}
+  .mk{flex:none; font-size:13px; margin-top:1px;}
+  .reasons li.good{border-color:rgba(61,220,151,.35);}
+  .reasons li.flag{border-color:rgba(255,107,107,.4);}
+  .reasons li.note{border-color:rgba(255,200,87,.4);}
+  .reasons li small{color:var(--sub); display:block; font-size:11.5px;}
+
+  .timecard{font-size:11.5px; color:var(--sub); margin-top:11px; border-top:1px dashed var(--line); padding-top:8px;}
+  .timecard b{color:var(--txt);}
+
+  /* 畳めるパネル */
+  details{background:var(--card); border:1px solid var(--line); border-radius:12px; margin-bottom:12px; overflow:hidden;}
+  summary{cursor:pointer; padding:13px 16px; font-size:14.5px; font-weight:700; list-style:none; display:flex; align-items:center; gap:8px;}
+  summary::-webkit-details-marker{display:none;}
+  summary::after{content:"＋"; margin-left:auto; color:var(--sub); font-weight:400;}
+  details[open] summary::after{content:"－";}
+  .panel-body{padding:0 16px 15px; font-size:13.5px;}
+  .panel-body p{margin-bottom:8px;}
+  .panel-body ol, .panel-body ul{margin:6px 0 10px 20px;}
+  .panel-body li{margin-bottom:7px;}
+  .panel-body .hl-ok{color:var(--ok);} .panel-body .hl-warn{color:var(--wait);} .panel-body .hl-red{color:var(--red);}
+  .warnbox{background:rgba(255,200,87,.08); border:1px solid rgba(255,200,87,.4); border-radius:9px; padding:10px 12px; margin:8px 0;}
+  .table{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:4px;}
+  .table th{background:var(--card2); padding:7px 10px; text-align:left; color:var(--sub); font-size:11.5px;}
+  .table td{padding:7px 10px; border-top:1px solid var(--line); vertical-align:top;}
+
+  .foot{margin-top:24px; font-size:11.5px; color:var(--sub); border-top:1px solid var(--line); padding-top:12px;}
+  @media(max-width:560px){
+    h1{font-size:18px;} #map{height:340px;}
+    .badges{margin-left:0; width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>足あとマップ <span style="font-size:13px;color:var(--sub);font-weight:400;">― だれが・どこを・いつ回ったか</span></h1>
+    <div class="badges">
+      <span class="badge warn">管理者だけが見る画面（本人には見せません）</span>
+    </div>
+  </header>
+  <div class="sub">2026年6月17日（火）／ 八王子 第一営業所 ／ 担当3人ぶん</div>
+
+  <div class="mirror">
+    🪞 これは<b>「正直な鏡」</b>です。罰を与えるための道具ではありません。
+    正直に回っている人を<b>まちがって「ズル」と決めつけない</b>ことを、いちばん大切にしています。
+    あやしい所が見つかっても、<b>最後に決めるのは人（あなた）</b>です。
+  </div>
+
+  <!-- フィルタ -->
+  <div class="filter">
+    <span class="lbl">だれを見る：</span>
+    <button class="chip on" data-person="all">3人ぜんぶ</button>
+    <button class="chip" data-person="A">Aさん</button>
+    <button class="chip" data-person="B">Bさん</button>
+    <button class="chip" data-person="C">Cさん</button>
+    <span class="lbl" style="margin-left:8px;">精度の悪い印：</span>
+    <button class="chip toggle on" id="grayToggle">うすいピンも見る</button>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="legend">
+    <span><span class="dot ok"></span>シロ（問題なし）</span>
+    <span><span class="dot wait"></span>要確認（黄）</span>
+    <span><span class="dot red"></span>要確認（赤・あやしい点）</span>
+    <span><span class="dot gray"></span>うすいピン＝場所がぼやけてた印（はじめからシロ扱い）</span>
+    <span><span class="ring"></span>まわりの円＝その時どれくらい場所が正確だったか（小さいほど正確）</span>
+    <span>◆☀▲ <b>見込み客ピン</b>＝足あととは別。横のコメントが見込み/再訪/お断りの目印（オーナーのMy Maps風）</span>
+    <span style="flex-basis:100%;color:#cfe0ff;">🛰️ <b>航空写真にした理由</b>＝屋根を上から見て太陽光パネルの有無を確認し、蓄電池の見込み客を絞り込むため（右上のボタンで「航空写真・詳細(Esri＝もっと深く拡大)／航空写真(国土地理院)／道路地図」を切替）</span>
+    <span style="flex-basis:100%;color:#9aa3c0;">🚶 ピンをタップして出る「ストリートビューで見る」は<b>Googleのページを開きます（キー登録・課金不要＝¥0）</b>。地図そのものはEsri／国土地理院の<b>無料の航空写真</b>です。</span>
+  </div>
+
+  <!-- 担当カード -->
+  <h2>👤 担当3人の通信簿（カードをタップすると地図がその人へ寄ります）</h2>
+  <div class="cards" id="cards"></div>
+
+  <!-- 説明パネル -->
+  <h2>📖 考え方の説明（読みたい時だけ開いてください）</h2>
+
+  <details>
+    <summary>🟢 正直な人を「ズル」と間違えないための3つの約束</summary>
+    <div class="panel-body">
+      <p>場所の記録は、電波の状態でかんたんにブレます。だから、ブレを正直な人のせいにしない仕組みを先に作りました。</p>
+      <ol>
+        <li><b>① 場所がぼやけてた印は、はじめから「シロ」にする。</b><br>
+          <small style="color:var(--sub)">1タップごとに「その時どれくらい正確だったか（誤差の大きさ）」も一緒に記録します。
+          ビルの影・地下・家が密集した所では誤差が大きくなります。誤差が大きいタップは判定から自動で外し、地図では<span class="hl-warn">うすいピン</span>で「外したよ」と見えるようにします。</small></li>
+        <li><b>② 時刻は「スマホで押した時刻」で見る。「会社のサーバに届いた時刻」では見ない。</b><br>
+          <small style="color:var(--sub)">電波の届かない所でタップして、後でまとめて送られることがあります。届いた時刻で見ると「同じ時間に連打した」と誤解します。だから押した時刻とどいた時刻を<b>両方とっておき、判定は押した時刻で</b>します。（各カードの下に両方の時刻を小さく出しています）</small></li>
+        <li><b>③ 1回のタップだけで「黒」にしない。あやしい時は「要確認」で止める。</b><br>
+          <small style="color:var(--sub)">「家と同じ場所か」を見るときの近さの基準は、その時の誤差の大きさに合わせて自動でゆるめます。
+          迷ったら全部シロ側に倒します。押し忘れて後から手で足した分も罰しません。<b>最後に決めるのは人</b>です。</small></li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>⚠️ それでも賢いズルを見抜く「二の矢」（5つ）</summary>
+    <div class="panel-body">
+      <p>上の3つだけだと、わざと位置をごまかす人をすり抜けてしまいます。そこで次の5つも見ます。</p>
+      <ol>
+        <li><b>位置のつじつま合わせ</b>：スマホがつかんだ電波（Wi-Fi・電話の基地局・ネットの住所）と、GPSの場所が
+          食い違っていないか。<span class="hl-red">食い違い＝位置をごまかすアプリの可能性大。</span></li>
+        <li><b>押した瞬間に「止まって/歩いて」いたか＋その前後に歩いた区間があるか。</b>
+          <div class="warnbox">
+            ⚠️ ここがいちばん大事。営業の回り方は2通りあります。<br>
+            ① 歩き・自転車でまわる　② 車でエリアまで移動 → 車をとめて → そこから歩いてピンポン。<br>
+            <b>「車で移動すること」じたいは、ふつうの正しい回り方です。絶対にバツにしません。</b><br>
+            バツにするのは「<span class="hl-red">車から降りずに、流しながらタップ</span>」だけ。
+            その時は<b>タップの瞬間も車の速さ</b>で、<b>前後に歩いた区間がゼロ</b>になります。この違いだけを見ます。
+          </div></li>
+        <li><b>位置ごまかしアプリの印（モックロケーション）＋サーバの時刻。</b>
+          スマホのしくみレベルでの「うそ位置」をはじきます。</li>
+        <li><b>足あとのきれいさ × 成果。</b>
+          きれいに回っているのに「話できた・アポが0」が続く＝<span class="hl-warn">歩いただけ（成果の出ない回り方／作り物）の疑い。</span>最後の砦です。</li>
+        <li><b>その日かぎりの合いことば（ワンタイム）。</b>
+          昨日の記録を今日コピーして使い回す、を防ぎます。</li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>🔓 隠さない・記録すること全部の開示（本人もいつでも自分の分を見られます）</summary>
+    <div class="panel-body">
+      <table class="table">
+        <tr><th>記録するもの</th><td>1軒ごとに「ボタンを押した時の<b>場所</b>」と「<b>時刻</b>」と「<b>その時の正確さ（誤差）</b>」だけ。点（押した瞬間）だけです。</td></tr>
+        <tr><th>記録しないもの</th><td>ずっとの居場所（つねに追いかけることはしません）。休憩・お昼・私用の移動は記録しません。位置の許可は<b>アプリを使っている時だけ</b>。</td></tr>
+        <tr><th>だれが見られる</th><td>この地図は<b>管理者だけ</b>。本人にはこの画面は出しません。ただし<b>本人は自分の記録をいつでも自分で確認できます</b>。</td></tr>
+        <tr><th>どれくらい残す</th><td>保管する期間を決めて、過ぎたら消します。本人がやめた時・「消して」と言った時は消します。（最終ルールは専門家に確認）</td></tr>
+        <tr><th>決め方</th><td>あやしい点は「要確認」で止めるだけ。<b>機械が勝手に「クロ」と決めることはありません。最後は人が見て決めます。</b>押し忘れの後からの追加もOK（罰しません）。</td></tr>
+      </table>
+      <p style="margin-top:10px;color:var(--sub);font-size:12px;">※ 場所の情報は大切な個人の情報です。「記録すること・見る人・残す期間」を本人にちゃんと伝えて同意をもらうのが大前提です。最後の線引きは行政書士／弁護士に確認します。</p>
+    </div>
+  </details>
+
+  <div class="foot">
+    🟢 お金は¥0で動いています（航空写真は無料のEsri World Imageryと地理院タイル＝国土地理院、道路地図は無料の OpenStreetMap。ストリートビューはGoogleのページを開くリンクだけ＝我々のアプリにキー登録・課金は不要です）。
+    これは目で確かめるための<b>試作（サンプルの3人）</b>です。本物のデータにつなぐ前のひな型です。
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+/* =========================================================================
+   サンプルデータ（本物が来たら差し替える所）
+   各タップ：lat,lng=場所 / acc=その時の誤差(メートル) / dev=スマホで押した時刻
+            srv=サーバに届いた時刻 / spd=その時の速さ(km/h) / talk=話できたか
+   lowAcc=true は「誤差が大きすぎ＝判定から外した（うすいピン）」
+   ========================================================================= */
+
+// 東京近郊の住宅地あたりを中心にする（航空写真に屋根が並んで出る）
+var CENTER = [35.7010, 139.5500];
+
+var PEOPLE = [
+  {
+    id:"A", name:"Aさん", role:"歩き・自転車で回る人",
+    color:"#3ddc97", verdict:"ok", verdictText:"シロ（問題なし）",
+    visits:14, talks:6, apo:2,
+    devSpan:"9:12 〜 17:48（スマホで押した時刻）",
+    srvNote:"とどいた時刻もほぼ同じ（電波が良い）",
+    reasons:[
+      {k:"good", t:"足あとがエリアに自然に散らばっている", s:"1軒ずつ間をあけて移動＝正直な回り方"},
+      {k:"good", t:"場所の正確さも良好（誤差が小さい）", s:"判定から外したタップはほぼ無し"},
+      {k:"good", t:"話できた6件・アポ2件と成果も出ている", s:"きれいさと成果が一致＝作り物ではない"}
+    ],
+    taps:[
+      {lat:35.7026,lng:139.5471,acc:12,dev:"9:12",srv:"9:12",spd:4,talk:true},
+      {lat:35.7021,lng:139.5485,acc:10,dev:"9:31",srv:"9:31",spd:0,talk:false},
+      {lat:35.7014,lng:139.5498,acc:14,dev:"9:55",srv:"9:55",spd:5,talk:true},
+      {lat:35.7007,lng:139.5512,acc:11,dev:"10:20",srv:"10:20",spd:0,talk:false},
+      {lat:35.6999,lng:139.5525,acc:13,dev:"10:48",srv:"10:48",spd:6,talk:false},
+      {lat:35.7004,lng:139.5541,acc:9, dev:"11:15",srv:"11:15",spd:0,talk:true},
+      {lat:35.7017,lng:139.5534,acc:15,dev:"11:40",srv:"11:40",spd:5,talk:false},
+      {lat:35.7030,lng:139.5519,acc:12,dev:"13:05",srv:"13:05",spd:4,talk:true},
+      {lat:35.7038,lng:139.5506,acc:10,dev:"13:32",srv:"13:32",spd:0,talk:false},
+      {lat:35.7033,lng:139.5490,acc:38,dev:"13:58",srv:"13:58",spd:3,talk:false,lowAcc:true},
+      {lat:35.7043,lng:139.5480,acc:13,dev:"14:25",srv:"14:25",spd:0,talk:true},
+      {lat:35.7051,lng:139.5495,acc:11,dev:"15:02",srv:"15:02",spd:5,talk:false},
+      {lat:35.7056,lng:139.5511,acc:14,dev:"16:10",srv:"16:10",spd:0,talk:true},
+      {lat:35.7048,lng:139.5526,acc:12,dev:"17:48",srv:"17:48",spd:4,talk:false}
+    ]
+  },
+  {
+    id:"B", name:"Bさん", role:"車で移動して回る人（★これも正常）",
+    color:"#5b8cff", verdict:"ok", verdictText:"シロ（問題なし）",
+    visits:16, talks:7, apo:2,
+    devSpan:"9:05 〜 18:10（スマホで押した時刻）",
+    srvNote:"車移動の区間あり。ただし降りてからは歩きの足あとが固まる",
+    reasons:[
+      {k:"note", t:"エリアの間は車で移動している", s:"⚠️ 車での移動はふつうの正しい回り方。これだけでバツにはしません"},
+      {k:"good", t:"車をとめた所の周りに、歩きの足あとが固まっている", s:"降りて歩いてピンポンした証拠＝正直な車回り"},
+      {k:"good", t:"タップの瞬間は止まって/歩いている（前後に歩いた区間あり）", s:"「車から降りず流しタップ」とは正反対"},
+      {k:"good", t:"話できた7件・アポ2件と成果も出ている", s:""}
+    ],
+    // 2つの駐車クラスタ＋その間の高速移動(車)。駐車後は徒歩でピンポン。
+    taps:[
+      // クラスタ1（午前・東側の住宅地で駐車→徒歩）
+      {lat:35.6975,lng:139.5570,acc:11,dev:"9:05",srv:"9:05",spd:2,talk:false},
+      {lat:35.6972,lng:139.5579,acc:13,dev:"9:22",srv:"9:22",spd:0,talk:true},
+      {lat:35.6968,lng:139.5573,acc:10,dev:"9:41",srv:"9:41",spd:4,talk:false},
+      {lat:35.6974,lng:139.5564,acc:12,dev:"10:03",srv:"10:03",spd:0,talk:true},
+      {lat:35.6980,lng:139.5576,acc:14,dev:"10:28",srv:"10:28",spd:3,talk:false},
+      {lat:35.6966,lng:139.5585,acc:42,dev:"10:50",srv:"10:50",spd:0,talk:false,lowAcc:true},
+      // 車で移動（速度が高い＝移動中のタップではない・参考点）
+      {lat:35.6995,lng:139.5530,acc:18,dev:"11:30",srv:"11:30",spd:34,talk:false,driving:true},
+      // クラスタ2（午後・西側の住宅地で駐車→徒歩）
+      {lat:35.7060,lng:139.5440,acc:12,dev:"13:10",srv:"13:10",spd:1,talk:false},
+      {lat:35.7066,lng:139.5432,acc:10,dev:"13:33",srv:"13:33",spd:0,talk:true},
+      {lat:35.7073,lng:139.5445,acc:13,dev:"13:58",srv:"13:58",spd:5,talk:false},
+      {lat:35.7067,lng:139.5454,acc:11,dev:"14:25",srv:"14:25",spd:0,talk:true},
+      {lat:35.7061,lng:139.5428,acc:15,dev:"14:55",srv:"14:55",spd:4,talk:false},
+      {lat:35.7054,lng:139.5439,acc:12,dev:"15:30",srv:"15:30",spd:0,talk:true},
+      {lat:35.7075,lng:139.5420,acc:14,dev:"16:20",srv:"16:20",spd:3,talk:false},
+      {lat:35.7069,lng:139.5410,acc:11,dev:"17:15",srv:"17:15",spd:0,talk:true},
+      {lat:35.7063,lng:139.5422,acc:13,dev:"18:10",srv:"18:10",spd:5,talk:false}
+    ]
+  },
+  {
+    id:"C", name:"Cさん", role:"いくつか引っかかった人",
+    color:"#ff6b6b", verdict:"red", verdictText:"⚠️ 要確認（人が見て判断）",
+    visits:19, talks:0, apo:0,
+    devSpan:"10:30 〜 11:20（スマホで押した時刻・短い）",
+    srvNote:"全部のとどいた時刻が10:30〜11:20に固まっている／スマホで押した時刻もほぼ同じ＝あやしい",
+    reasons:[
+      {k:"flag", t:"二の矢①：位置のつじつまが合わない（Wi-Fi/基地局と GPS が食い違い）＋位置ごまかしアプリの印あり", s:"位置をごまかすアプリの可能性が高い"},
+      {k:"flag", t:"二の矢②：タップの瞬間ぜんぶ車の速さ／前後に歩いた区間がゼロ", s:"⚠️ Bさんの正しい車回りと違い、降りた形跡がない＝車から降りず流しタップの形"},
+      {k:"flag", t:"二の矢④：きれいに回ってるのに「話できた・アポが0」", s:"歩いた（流した）だけの疑い＝最後の砦"}
+    ],
+    // 道路に沿って一直線・全部高速・誤差はそこそこ良いが位置偽装。話できた0。
+    taps:[
+      {lat:35.6935,lng:139.5610,acc:16,dev:"10:30",srv:"10:30",spd:31,talk:false,driving:true,mock:true},
+      {lat:35.6944,lng:139.5596,acc:15,dev:"10:34",srv:"10:34",spd:33,talk:false,driving:true,mock:true},
+      {lat:35.6953,lng:139.5582,acc:17,dev:"10:38",srv:"10:38",spd:30,talk:false,driving:true,mock:true},
+      {lat:35.6962,lng:139.5568,acc:14,dev:"10:42",srv:"10:42",spd:34,talk:false,driving:true,mock:true},
+      {lat:35.6971,lng:139.5554,acc:16,dev:"10:46",srv:"10:46",spd:32,talk:false,driving:true,mock:true},
+      {lat:35.6980,lng:139.5540,acc:15,dev:"10:50",srv:"10:50",spd:35,talk:false,driving:true,mock:true},
+      {lat:35.6989,lng:139.5526,acc:18,dev:"10:54",srv:"10:54",spd:31,talk:false,driving:true,mock:true},
+      {lat:35.6998,lng:139.5512,acc:14,dev:"10:58",srv:"10:58",spd:33,talk:false,driving:true,mock:true},
+      {lat:35.7007,lng:139.5498,acc:16,dev:"11:02",srv:"11:02",spd:30,talk:false,driving:true,mock:true},
+      {lat:35.7016,lng:139.5484,acc:15,dev:"11:06",srv:"11:06",spd:34,talk:false,driving:true,mock:true},
+      {lat:35.7025,lng:139.5470,acc:17,dev:"11:10",srv:"11:10",spd:32,talk:false,driving:true,mock:true},
+      {lat:35.7034,lng:139.5456,acc:14,dev:"11:14",srv:"11:14",spd:33,talk:false,driving:true,mock:true},
+      {lat:35.7043,lng:139.5442,acc:16,dev:"11:18",srv:"11:18",spd:31,talk:false,driving:true,mock:true},
+      {lat:35.7052,lng:139.5428,acc:15,dev:"11:20",srv:"11:20",spd:35,talk:false,driving:true,mock:true}
+    ]
+  }
+];
+
+/* =========================================================================
+   見込み客ピン（オーナーのMy Maps風＝足あととは別アイコン＋横に常時コメント）
+   足あと(activity)とは別物のデモ。横に常時ラベル、クリックで詳細メモ＋ストビュー。
+   ========================================================================= */
+var PROSPECTS = [
+  {lat:35.7019,lng:139.5489, icon:"◆", color:"#ffc857",
+   short:"◆見込み・太陽光あり・夫婦在宅",
+   note:"屋根に太陽光パネルあり。夫婦そろって在宅で話せた。蓄電池に前向き＝また来る。"},
+  {lat:35.7036,lng:139.5512, icon:"☀", color:"#3ddc97",
+   short:"◆見込み・屋根に空き・要再訪",
+   note:"南向きの屋根に空きあり。今は不在だったので、夕方にもう一度たずねる。"},
+  {lat:35.6989,lng:139.5526, icon:"▲", color:"#ff6b6b",
+   short:"▲断り・営業お断りの家",
+   note:"「営業お断り」の張り紙あり。本人も強い口調。再訪はしない（ムダ足を防ぐ印）。"}
+];
+
+/* ---- 地図のセットアップ ---- */
+// 航空写真・詳細（Esri World Imagery・無料・キー不要）＝もっと深く拡大できる（z19/z20も取れる）
+// ★URLの並びは {z}/{y}/{x}（yが先。Leaflet既定の{z}/{x}/{y}と違うので注意）
+var esriLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 20,
+  attribution: 'Esri World Imagery'
+});
+// 航空写真（国土地理院・無料・キー不要）＝屋根を上から見て太陽光パネルの有無を確認するため（z18止まり）
+var photoLayer = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+  maxZoom: 18,
+  attribution: '地理院タイル（国土地理院）'
+});
+// 道路地図（OpenStreetMap・切替で見られる）
+var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '地図 © OpenStreetMap（無料・キー不要）'
+});
+
+// 既定は航空写真・詳細(Esri)。屋根が見える縮尺（z18）で開く。地図全体の最大ズームは20
+var map = L.map('map', {scrollWheelZoom:true, maxZoom:20, layers:[esriLayer]}).setView(CENTER, 18);
+
+// レイヤ切替（航空写真・詳細(Esri) ／ 航空写真(国土地理院) ／ 地図(道路)）
+L.control.layers({
+  "航空写真・詳細（Esri／深く拡大できる）": esriLayer,
+  "航空写真（国土地理院）": photoLayer,
+  "地図（道路）": osmLayer
+}, null, {collapsed:false}).addTo(map);
+
+var COLORS = {ok:"#3ddc97", warn:"#ffc857", red:"#ff6b6b", gray:"#8a93ad"};
+
+// ストリートビューのリンク（Googleのページを別タブで開く＝我々はAPIキー不要・¥0）
+function svLink(lat, lng){
+  var url = 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + lat + ',' + lng;
+  return '<a href="'+url+'" target="_blank" rel="noopener" '+
+    'style="display:inline-block;margin-top:6px;color:#cfe0ff;font-weight:700;text-decoration:none;'+
+    'border:1px solid #5b8cff;border-radius:8px;padding:3px 9px;">🚶 ストリートビューで見る</a>';
+}
+
+// 人ごとのレイヤーグループ
+var layers = {};        // id -> {good:LayerGroup, gray:LayerGroup, bounds:[]}
+var allBounds = [];
+
+function tagHtml(person, tap){
+  if(tap.lowAcc) return '<span class="pop-tag" style="background:rgba(138,147,173,.25);color:#cfd3e0;">うすいピン＝場所がぼやけてた（判定から外した）</span>';
+  if(person.verdict==='red'){
+    return '<span class="pop-tag" style="background:rgba(255,107,107,.2);color:#ffb3b3;">あやしい点（速い＋位置のつじつま×）</span>';
+  }
+  if(tap.driving) return '<span class="pop-tag" style="background:rgba(91,140,255,.2);color:#cfe0ff;">車で移動中（参考・正常）</span>';
+  return '<span class="pop-tag" style="background:rgba(61,220,151,.18);color:#bff3da;">問題なし</span>';
+}
+
+function buildPerson(person){
+  var good = L.layerGroup();
+  var gray = L.layerGroup();
+  var bounds = [];
+
+  person.taps.forEach(function(tap){
+    bounds.push([tap.lat, tap.lng]);
+    allBounds.push([tap.lat, tap.lng]);
+
+    var isGray = !!tap.lowAcc;
+    var color = isGray ? COLORS.gray : COLORS[person.verdict];
+
+    // 精度円（誤差の大きさ＝半径メートル）／航空写真の上でも見えるよう白っぽく強める
+    var circle = L.circle([tap.lat,tap.lng], {
+      radius: tap.acc,
+      color: isGray ? "#ffffff" : "#dfe8ff",
+      weight: 2,
+      opacity: isGray ? .55 : .8,
+      fillColor: isGray ? COLORS.gray : "#5b8cff",
+      fillOpacity: isGray ? .08 : .14,
+      dashArray: "4 4"
+    });
+
+    // ピン本体／航空写真の上でも沈まないよう白フチを太く
+    var marker = L.circleMarker([tap.lat,tap.lng], {
+      radius: isGray ? 6 : 8,
+      color: "#ffffff",
+      weight: 2.5,
+      opacity: 1,
+      fillColor: color,
+      fillOpacity: isGray ? .7 : 1
+    });
+
+    var pop =
+      '<div class="pop-title" style="color:'+color+'">'+person.name+'</div>'+
+      '<div class="pop-row">押した時刻 '+tap.dev+' ／ とどいた '+tap.srv+'</div>'+
+      '<div class="pop-row">その時の正確さ（誤差）：約 '+tap.acc+' m</div>'+
+      '<div class="pop-row">その時の速さ：'+tap.spd+' km/h'+(tap.spd>=20?'（車）':'（止まる/歩き）')+'</div>'+
+      (tap.mock?'<div class="pop-row" style="color:#ffb3b3;">位置ごまかしアプリの印：あり</div>':'')+
+      '<div class="pop-row">話できた：'+(tap.talk?'はい':'いいえ')+'</div>'+
+      tagHtml(person, tap)+
+      '<div>'+svLink(tap.lat, tap.lng)+'</div>';
+
+    circle.bindPopup(pop);
+    marker.bindPopup(pop);
+
+    // 横に常時表示のコメント（クリック不要で見える）＝時刻＋結果を短く
+    if(!isGray){
+      marker.bindTooltip(tap.dev+' '+(tap.talk?'話せた':(tap.driving?'移動中':'留守')), {
+        permanent:true, direction:'right', className:'foot-label', offset:[6,0]
+      });
+    }
+
+    var target = isGray ? gray : good;
+    circle.addTo(target);
+    marker.addTo(target);
+  });
+
+  layers[person.id] = {good:good, gray:gray, bounds:bounds};
+}
+
+PEOPLE.forEach(buildPerson);
+
+/* ---- 見込み客ピン（My Maps風・足あととは別アイコン＋横に常時コメント） ---- */
+var prospectLayer = L.layerGroup();
+PROSPECTS.forEach(function(p){
+  // 足あとピンとは別の見た目＝アイコン文字（◆☀▲）入りのマーカー
+  var icon = L.divIcon({
+    className:'prospect-icon',
+    html:'<span style="color:'+p.color+';">'+p.icon+'</span>',
+    iconSize:[26,26], iconAnchor:[13,13]
+  });
+  var m = L.marker([p.lat,p.lng], {icon:icon});
+  // 横に常時表示のコメント
+  m.bindTooltip(p.short, {permanent:true, direction:'right', className:'prospect-label', offset:[10,0]});
+  // クリックで詳細メモ＋ストリートビュー
+  m.bindPopup(
+    '<div class="pop-title" style="color:'+p.color+'">'+p.short+'</div>'+
+    '<div class="pop-row">'+p.note+'</div>'+
+    '<div>'+svLink(p.lat, p.lng)+'</div>'
+  );
+  m.addTo(prospectLayer);
+});
+prospectLayer.addTo(map);
+
+/* ---- 表示状態の管理 ---- */
+var currentPerson = "all";
+var showGray = true;
+
+function render(){
+  PEOPLE.forEach(function(p){
+    var L_ = layers[p.id];
+    var visible = (currentPerson==="all" || currentPerson===p.id);
+    // good
+    if(visible){ if(!map.hasLayer(L_.good)) L_.good.addTo(map); }
+    else { if(map.hasLayer(L_.good)) map.removeLayer(L_.good); }
+    // gray（精度の悪い印トグル）
+    if(visible && showGray){ if(!map.hasLayer(L_.gray)) L_.gray.addTo(map); }
+    else { if(map.hasLayer(L_.gray)) map.removeLayer(L_.gray); }
+  });
+  // 地図を寄せる
+  if(currentPerson==="all"){
+    if(allBounds.length) map.fitBounds(allBounds, {padding:[40,40]});
+  } else {
+    var b = layers[currentPerson].bounds;
+    if(b.length) map.fitBounds(b, {padding:[50,50]});
+  }
+}
+
+/* ---- フィルタの操作 ---- */
+document.querySelectorAll('.chip[data-person]').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.chip[data-person]').forEach(function(b){ b.classList.remove('on'); });
+    btn.classList.add('on');
+    currentPerson = btn.dataset.person;
+    syncCardFocus();
+    render();
+  });
+});
+
+var grayBtn = document.getElementById('grayToggle');
+grayBtn.addEventListener('click', function(){
+  showGray = !showGray;
+  grayBtn.classList.toggle('on', showGray);
+  grayBtn.classList.toggle('off', !showGray);
+  grayBtn.textContent = showGray ? "うすいピンも見る" : "うすいピンを隠す";
+  render();
+});
+
+/* ---- カードを描く ---- */
+var cardsBox = document.getElementById('cards');
+PEOPLE.forEach(function(p){
+  var rate = p.visits>0 ? Math.round(p.apo/p.visits*100) : 0;
+  var vClass = p.verdict==='ok' ? 'v-ok' : (p.verdict==='red' ? 'v-red' : 'v-warn');
+
+  var reasonsHtml = p.reasons.map(function(r){
+    var mk = r.k==='good' ? '✅' : (r.k==='flag' ? '🚩' : '⚠️');
+    return '<li class="'+r.k+'"><span class="mk">'+mk+'</span><span>'+r.t+
+      (r.s?'<small>'+r.s+'</small>':'')+'</span></li>';
+  }).join('');
+
+  var html =
+    '<div class="card" data-card="'+p.id+'">'+
+      '<div class="card-head">'+
+        '<span class="pin" style="background:'+p.color+'"></span>'+
+        '<div><div class="name">'+p.name+'</div><div class="role">'+p.role+'</div></div>'+
+        '<span class="verdict '+vClass+'">'+p.verdictText+'</span>'+
+      '</div>'+
+      '<div class="kpis">'+
+        '<div class="kpi"><div class="n">'+p.visits+'</div><div class="t">訪問件数</div></div>'+
+        '<div class="kpi"><div class="n">'+p.talks+'</div><div class="t">話できた</div></div>'+
+        '<div class="kpi"><div class="n">'+p.apo+'</div><div class="t">アポ</div></div>'+
+        '<div class="kpi"><div class="n">'+rate+'%</div><div class="t">アポ率</div></div>'+
+      '</div>'+
+      '<div class="reasons"><div class="hd">判定の理由（どの考え方が効いたか）</div><ul>'+reasonsHtml+'</ul></div>'+
+      '<div class="timecard">⏱ '+p.devSpan+'<br>📡 '+p.srvNote+'</div>'+
+    '</div>';
+  cardsBox.insertAdjacentHTML('beforeend', html);
+});
+
+function syncCardFocus(){
+  document.querySelectorAll('.card').forEach(function(c){
+    c.classList.toggle('focus', currentPerson!=="all" && c.dataset.card===currentPerson);
+  });
+}
+
+document.querySelectorAll('.card').forEach(function(card){
+  card.addEventListener('click', function(){
+    var id = card.dataset.card;
+    // フィルタチップと連動
+    document.querySelectorAll('.chip[data-person]').forEach(function(b){
+      b.classList.toggle('on', b.dataset.person===id);
+    });
+    currentPerson = id;
+    syncCardFocus();
+    render();
+    document.getElementById('map').scrollIntoView({behavior:'smooth', block:'center'});
+  });
+});
+
+render();
+</script>
+</body>
+</html>

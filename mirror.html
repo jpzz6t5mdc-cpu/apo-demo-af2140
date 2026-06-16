@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1815">
+<title>今日の一筆 ― ハヤテ</title>
+<!-- 手書き風フォント（Google Fonts CDN 1本のみ・読めなくても fallback で成立） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Zen+Kurenaido&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* 夕暮れの和紙＝墨と土の色。落ち着いた、味のある配色 */
+    --paper:#1a1815;        /* 背景：夜に向かう墨 */
+    --paper2:#211e1a;
+    --card:#252119;         /* 和紙カード */
+    --card-edge:#3a342a;
+    --ink:#f0e9da;          /* 墨の白文字 */
+    --ink-soft:#b8ad97;     /* 薄墨 */
+    --ink-faint:#857a64;    /* かすれ */
+    --vermilion:#d98a5b;    /* 朱・夕陽 */
+    --vermilion-soft:#e3a378;
+    --gold:#cbb27a;         /* ほのかな金 */
+    --leaf:#8fae7d;         /* 草の緑（結果KPI・控えめ） */
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(120% 80% at 50% -10%, #2a241c 0%, var(--paper) 55%, var(--paper2) 100%);
+    color:var(--ink);
+    font-family:"Zen Kurenaido","Hiragino Sans","Yu Gothic",sans-serif;
+    line-height:1.85;
+    min-height:100%;
+    padding:max(26px,env(safe-area-inset-top)) 18px calc(40px + env(safe-area-inset-bottom));
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .wrap{
+    width:100%;
+    max-width:430px;   /* スマホ縦1カラム最優先 */
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:0;
+  }
+
+  /* ── 上：日付・時刻・あだ名（ごく小さく・静かに） ── */
+  .head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    color:var(--ink-faint); font-size:12.5px; letter-spacing:.04em;
+    padding:2px 4px 0;
+  }
+  .head .name{ color:var(--ink-soft); font-size:13px; }
+  .head .name b{ color:var(--gold); font-weight:400; font-size:14.5px;
+    font-family:"Yuji Syuku",serif; letter-spacing:.06em; }
+  .head .clock{ font-feature-settings:"tnum"; }
+
+  /* ── 主役：一筆の言葉（和紙の短冊） ── */
+  .fude{
+    position:relative;
+    margin:26px 0 6px;
+    padding:34px 26px 30px;
+    background:
+      linear-gradient(180deg, rgba(255,250,238,.045), rgba(0,0,0,.06)),
+      var(--card);
+    border:1px solid var(--card-edge);
+    border-radius:18px;
+    box-shadow:0 18px 40px -22px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,245,225,.04);
+    overflow:hidden;
+  }
+  /* 朱の落款（はんこ）風の点 */
+  .fude::after{
+    content:"鏡";
+    position:absolute; right:16px; bottom:14px;
+    width:30px; height:30px; line-height:30px; text-align:center;
+    font-family:"Yuji Syuku",serif; font-size:14px;
+    color:#1a1815; background:var(--vermilion);
+    border-radius:5px; opacity:.82;
+    box-shadow:0 2px 6px rgba(0,0,0,.4);
+  }
+  /* 縦の薄い罫（短冊の余白感） */
+  .fude::before{
+    content:""; position:absolute; left:14px; top:18px; bottom:18px; width:1px;
+    background:linear-gradient(180deg,transparent,rgba(203,178,122,.25),transparent);
+  }
+  .fude .day{
+    font-size:12px; color:var(--vermilion-soft); letter-spacing:.18em;
+    margin-bottom:14px; padding-left:6px;
+  }
+  .fude .line{
+    font-family:"Yuji Syuku","Hiragino Mincho ProN",serif;
+    font-size:23px; line-height:2.0; color:var(--ink);
+    letter-spacing:.02em; padding-left:6px;
+    text-shadow:0 1px 0 rgba(0,0,0,.3);
+  }
+  .fude .line .em{ color:var(--vermilion-soft); }
+  .fude .step{
+    margin-top:18px; padding-left:6px;
+    font-family:"Zen Kurenaido",sans-serif;
+    font-size:15.5px; color:var(--gold); line-height:1.9;
+  }
+  .fude .step::before{ content:"― "; color:var(--ink-faint); }
+
+  /* ── 脇：数字を静かに添える（行動KPIを少し大きく／結果KPIは控えめ） ── */
+  .numbers{
+    display:flex; align-items:stretch; gap:10px;
+    margin:22px 2px 0;
+  }
+  .kpi{
+    flex:1; text-align:center; padding:14px 6px 12px;
+    background:rgba(255,250,238,.02);
+    border:1px solid rgba(58,52,42,.7);
+    border-radius:13px;
+  }
+  .kpi .lbl{ font-size:11.5px; color:var(--ink-faint); letter-spacing:.04em; }
+  .kpi .val{ font-feature-settings:"tnum"; line-height:1.15; margin-top:5px; }
+  .kpi .val .unit{ font-size:11px; color:var(--ink-faint); margin-left:2px; }
+
+  /* 行動KPI＝足で稼いだ努力。主役の数字。少し大きく・朱で讃える */
+  .kpi.act{
+    background:linear-gradient(180deg, rgba(217,138,91,.10), rgba(217,138,91,.03));
+    border-color:rgba(217,138,91,.4);
+  }
+  .kpi.act .lbl{ color:var(--vermilion-soft); }
+  .kpi.act .val{ font-size:34px; color:var(--vermilion-soft); font-weight:400; }
+
+  /* 結果KPI＝出てなくても責めない見せ方。控えめ・小さめ */
+  .kpi.res .val{ font-size:23px; color:var(--ink-soft); }
+
+  .ratio{
+    text-align:center; margin:12px 2px 0;
+    font-size:12.5px; color:var(--ink-faint); letter-spacing:.03em;
+  }
+  .ratio b{ color:var(--leaf); font-weight:400; font-feature-settings:"tnum"; }
+
+  /* ── 下：そっと添える気づき（罰でなくヒント） ── */
+  .hint{
+    margin:24px 2px 0;
+    padding:14px 16px;
+    background:rgba(143,174,125,.06);
+    border:1px solid rgba(143,174,125,.22);
+    border-radius:13px;
+    font-size:13.5px; color:var(--ink-soft); line-height:1.8;
+  }
+  .hint .tag{ display:block; font-size:11px; color:var(--leaf);
+    letter-spacing:.1em; margin-bottom:4px; }
+
+  /* ── 最下：これは鏡。誰かに報告するためじゃない ── */
+  .mirror{
+    margin:26px 0 0; text-align:center;
+    font-size:11.5px; color:var(--ink-faint); line-height:1.9;
+    letter-spacing:.02em;
+  }
+  .mirror .div{
+    width:34px; height:1px; margin:0 auto 12px;
+    background:linear-gradient(90deg,transparent,var(--ink-faint),transparent);
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="head">
+      <span class="clock" id="clock">6月17日（火）　夕方 16:42</span>
+      <span class="name">きょうの足あと・<b id="nick">ハヤテ</b></span>
+    </div>
+
+    <!-- 主役：一筆の言葉 -->
+    <div class="fude">
+      <div class="day" id="fudeDay">日暮れに、ひとふで</div>
+      <div class="line" id="fudeLine"></div>
+      <div class="step" id="fudeStep"></div>
+    </div>
+
+    <!-- 脇：数字（静かに） -->
+    <div class="numbers">
+      <div class="kpi act">
+        <div class="lbl">歩いた家</div>
+        <div class="val"><span id="nVisit">32</span><span class="unit">軒</span></div>
+      </div>
+      <div class="kpi res">
+        <div class="lbl">話せた</div>
+        <div class="val"><span id="nTalk">5</span><span class="unit">人</span></div>
+      </div>
+      <div class="kpi res">
+        <div class="lbl">お約束</div>
+        <div class="val"><span id="nApo">1</span><span class="unit">件</span></div>
+      </div>
+    </div>
+    <div class="ratio">話せた人のうち、お約束まで <b id="rRatio">17%</b></div>
+
+    <!-- 下：そっと添える気づき -->
+    <div class="hint">
+      <span class="tag">そっと、気づき</span>
+      <span id="hintText"></span>
+    </div>
+
+    <!-- 最下：鏡の約束 -->
+    <div class="mirror">
+      <div class="div"></div>
+      これは、あなたの鏡。<br>
+      誰かに報告するためのものじゃない。
+    </div>
+
+  </div>
+
+<script>
+/* =========================================================
+   一筆の言葉ロジック
+   数字（地図のピンから自動集計）に応じて、認める→明日への小さな一歩 を組み立てる。
+   報告ゼロ。点数で煽らない。優しく前を向かせる。日替わりで雰囲気が変わる。
+   ========================================================= */
+
+// サンプルデータ（10案投票と同じ数字）
+var data = {
+  nick:  "ハヤテ",
+  visit: 32,   // 行動KPI：歩いた家（自分でコントロールできる努力）
+  talk:  5,    // 結果KPI：話せた人
+  apo:   1,    // 結果KPI：お約束
+  hour:  16,
+  min:   42
+};
+
+// 率（話せた人のうちお約束まで＝結果の率。0除算は0%）
+var ratio = data.talk > 0 ? Math.round(data.apo / data.talk * 100) : 0;
+
+/* --- 一筆の本文（複数案）。数字の「層」で温度を変える ---
+   主役は行動（歩いた努力）を讃えること。結果が薄くても責めない。 */
+function buildFude(d, ratio){
+  var v = d.visit, t = d.talk, a = d.apo;
+  var line, step;
+
+  // 行動の量で「足で稼いだ努力」を認める言葉を選ぶ（多いほど力強く）
+  var walked;
+  if (v >= 40)      walked = v + "軒。よく歩いた、見事な一日。";
+  else if (v >= 25) walked = "今日は" + v + "軒、足で稼いだ。";
+  else if (v >= 12) walked = v + "軒。一歩ずつ、確かに進んだ。";
+  else              walked = v + "軒。今日は今日のぶん、よく動いた。";
+
+  // 結果（話せた・約束）を“責めずに”受けとめる
+  var met;
+  if (a >= 1 && t >= 1)      met = t + "人と心が通って、約束も" + a + "つ生まれた。";
+  else if (t >= 1)           met = t + "人と、心が通う時間があった。";
+  else                       met = "声は届かなくても、あなたの足は嘘をつかない。";
+
+  line = walked + "<br>" + met;
+
+  // 明日への小さな一歩（無理のない「あと1人ぶん」）
+  if (a >= 1 && t >= 1)      step = "通った人を、明日もう一人ぶんだけ。";
+  else if (t >= 1)           step = "話せたあの感じを、明日もう一度。";
+  else                       step = "明日は、一軒だけ深く話してみよう。";
+
+  return { line: line, step: step };
+}
+
+/* --- そっと添える気づき（罰でなく、優しいトーン） ---
+   サンプルなので文面は創作。本番は時間帯×成果の自動集計から出す想定。 */
+function buildHint(d, ratio){
+  if (d.talk >= 1 && ratio >= 15)
+    return "話せた人は、午前のほうが少し多かったみたい。明日の朝いちばん、いい時間かも。";
+  if (d.visit >= 30 && d.talk <= d.visit * 0.1)
+    return "たくさん歩いた日。話せた数より、まず動けたことが今日の宝。";
+  return "焦らなくていい。今日のリズムを、明日も少しだけ。";
+}
+
+// 日付・時刻の表示（あれば実時刻、なければサンプルの夕方）
+function stamp(d){
+  var wk = ["日","月","火","水","木","金","土"];
+  var now = new Date();
+  // サンプル時刻（16:42 夕方）を尊重。実環境で開いた時刻に追従させたい場合は now を使う。
+  var h = d.hour, m = d.min;
+  var part = h < 5 ? "未明" : h < 11 ? "朝" : h < 16 ? "昼" : h < 19 ? "夕方" : "夜";
+  var mm = (m < 10 ? "0" : "") + m;
+  return (now.getMonth()+1) + "月" + now.getDate() + "日（" + wk[now.getDay()] + "）　"
+         + part + " " + h + ":" + mm;
+}
+
+// 描画
+var f = buildFude(data, ratio);
+document.getElementById("fudeLine").innerHTML = f.line;
+document.getElementById("fudeStep").textContent = f.step;
+document.getElementById("hintText").textContent = buildHint(data, ratio);
+document.getElementById("nick").textContent  = data.nick;
+document.getElementById("nVisit").textContent = data.visit;
+document.getElementById("nTalk").textContent  = data.talk;
+document.getElementById("nApo").textContent   = data.apo;
+document.getElementById("rRatio").textContent = ratio + "%";
+document.getElementById("clock").textContent  = stamp(data);
+</script>
+</body>
+</html>
