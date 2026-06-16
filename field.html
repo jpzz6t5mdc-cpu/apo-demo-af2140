@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<!-- PWAホーム追加に馴染む（夕暮れの墨色） -->
+<meta name="theme-color" content="#1a1815" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>今日の鏡 ― ハヤテ</title>
+
+<!-- 手書き風フォント（Google Fonts CDN 1本のみ・読めなくても fallback で成立） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Zen+Kurenaido&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    /* 夕暮れの和紙＝墨と土の色（「一筆」の世界観を継承） */
+    --paper:#1a1815;        /* 背景：夜に向かう墨 */
+    --paper2:#211e1a;
+    --card:#252119;         /* 和紙カード */
+    --card-edge:#3a342a;
+    --ink:#f0e9da;          /* 墨の白文字 */
+    --ink-soft:#b8ad97;     /* 薄墨 */
+    --ink-faint:#857a64;    /* かすれ */
+    --vermilion:#d98a5b;    /* 朱・夕陽（行動KPI＝主役） */
+    --vermilion-soft:#e3a378;
+    --gold:#cbb27a;         /* ほのかな金（一筆の言葉） */
+    --leaf:#8fae7d;         /* 草の緑（結果KPI・控えめ） */
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%;}
+  html,body{height:100%; overflow:hidden;}
+  body{
+    background:
+      radial-gradient(120% 70% at 50% -10%, #2a241c 0%, var(--paper) 55%, var(--paper2) 100%);
+    color:var(--ink);
+    font-family:"Zen Kurenaido","Hiragino Sans","Yu Gothic",sans-serif;
+    line-height:1.6;
+  }
+
+  /* ============================================================
+     画面は 100vh を上下に分ける（スマホ縦1カラム最優先）
+       上半分 .board ＝ 今日のスコアボード（鏡）
+       下半分 .grid  ＝ LINEリッチメニュー風の入力タイル
+     safe-area対応（上下のノッチ／ホームバーを避ける）
+     ============================================================ */
+  .app{
+    height:100dvh; height:100svh;        /* 動的ビューポート優先 */
+    max-width:480px; margin:0 auto;
+    display:flex; flex-direction:column;
+    padding:env(safe-area-inset-top) 0 0 0;
+  }
+  @supports not (height:100dvh){
+    .app{ height:100vh; }   /* 古い端末フォールバック */
+  }
+
+  /* ── 上半分：スコアボード ─────────────────────── */
+  .board{
+    flex:1 1 50%;
+    display:flex; flex-direction:column;
+    padding:10px 16px 8px;
+    overflow:hidden;
+    min-height:0;
+  }
+
+  /* ヘッダー：あだ名・日付・時刻 */
+  .head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    color:var(--ink-faint); font-size:12.5px; letter-spacing:.03em;
+    padding:0 2px 4px;
+  }
+  .head .clock{ font-feature-settings:"tnum"; }
+  .head .name{ color:var(--ink-soft); font-size:12.5px; }
+  .head .name b{ color:var(--gold); font-weight:400; font-size:15px;
+    font-family:"Yuji Syuku",serif; letter-spacing:.06em; }
+
+  /* 主役：行動KPI＝歩いた家（一番大きく讃える） */
+  .heroNum{
+    text-align:center; margin:2px 0 0;
+    position:relative;
+  }
+  .heroNum .lbl{
+    font-size:12.5px; color:var(--vermilion-soft); letter-spacing:.12em;
+  }
+  .heroNum .val{
+    font-feature-settings:"tnum";
+    font-size:clamp(58px,20vw,92px); line-height:1.0;
+    color:var(--vermilion-soft); font-weight:400;
+    text-shadow:0 2px 14px rgba(217,138,91,.25);
+    transition:transform .18s ease;
+  }
+  .heroNum .val .unit{ font-size:22px; color:var(--ink-faint); margin-left:4px; letter-spacing:0; }
+  .heroNum .val.bump{ transform:scale(1.14); }   /* 増えた瞬間の手応え */
+
+  /* 一筆の言葉（そっと1〜2行） */
+  .fude{
+    text-align:center; margin:6px 8px 0;
+    font-family:"Yuji Syuku","Hiragino Mincho ProN",serif;
+    font-size:clamp(14px,4.4vw,18px); line-height:1.7;
+    color:var(--ink); letter-spacing:.02em;
+    min-height:2.2em;
+  }
+  .fude .em{ color:var(--vermilion-soft); }
+
+  /* 結果KPI＝話せた／見込み／アポ（控えめ・責めない） */
+  .res3{
+    display:flex; gap:8px; margin:auto 0 2px; padding-top:6px;
+  }
+  .res3 .r{
+    flex:1; text-align:center; padding:7px 4px 6px;
+    background:rgba(255,250,238,.025);
+    border:1px solid rgba(58,52,42,.7);
+    border-radius:11px;
+  }
+  .res3 .r .rl{ font-size:10.5px; color:var(--ink-faint); letter-spacing:.02em; }
+  .res3 .r .rv{ font-feature-settings:"tnum"; font-size:20px; color:var(--ink-soft); line-height:1.2; margin-top:1px; }
+  .res3 .r .rv .u{ font-size:10px; color:var(--ink-faint); margin-left:1px; }
+  .res3 .r.apo .rl{ color:var(--leaf); }
+  .res3 .r.apo .rv{ color:var(--leaf); }
+
+  /* 鏡の約束（隠さない原則・極小） */
+  .mirror{
+    text-align:center; margin-top:5px;
+    font-size:10px; color:var(--ink-faint); line-height:1.45; letter-spacing:.01em;
+  }
+
+  /* ── 下半分：リッチメニュー風 入力グリッド ───────── */
+  .grid{
+    flex:1 1 50%;
+    display:grid;
+    grid-template-columns:1fr 1fr;     /* 2列 */
+    grid-template-rows:1fr 1fr 1fr;    /* 3行＝6枠 */
+    gap:6px;
+    padding:6px 8px calc(8px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.30));
+    border-top:1px solid var(--card-edge);
+    min-height:0;
+  }
+  /* タイル＝1軒の訪問結果（大きく・指で押しやすく） */
+  .tile{
+    border:none; border-radius:16px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; padding:6px;
+    color:#1a1815; font-family:inherit;
+    box-shadow:0 4px 12px -4px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.18);
+    transition:transform .07s ease, filter .15s ease;
+    position:relative; overflow:hidden;
+  }
+  .tile:active{ transform:scale(.96); filter:brightness(1.06); }
+  .tile.flash{ animation:flash .45s ease; }   /* 押した瞬間に光る */
+  @keyframes flash{
+    0%{ box-shadow:0 0 0 0 rgba(255,255,255,.0), 0 4px 12px -4px rgba(0,0,0,.55); }
+    35%{ box-shadow:0 0 0 4px rgba(255,255,255,.55), 0 4px 12px -4px rgba(0,0,0,.55); filter:brightness(1.25); }
+    100%{ box-shadow:0 0 0 0 rgba(255,255,255,.0), 0 4px 12px -4px rgba(0,0,0,.55); }
+  }
+  .tile .ic{ font-size:clamp(26px,8vw,38px); line-height:1; filter:drop-shadow(0 1px 1px rgba(0,0,0,.2)); }
+  .tile .tl{ font-size:clamp(13px,4vw,16px); font-weight:800; letter-spacing:.02em; }
+
+  /* タイルの色分け（結果ごと） */
+  .tile.rusu     { background:linear-gradient(155deg,#cdbfa6,#b6a684); }  /* 留守＝土色 */
+  .tile.kotowari { background:linear-gradient(155deg,#c79a8c,#b07f70); }  /* 断られた＝くすんだ朱 */
+  .tile.hanaseta { background:linear-gradient(155deg,#e3a378,#d98a5b); color:#241405; } /* 話せた＝夕陽朱 */
+  .tile.mikomi   { background:linear-gradient(155deg,#d7c27d,#cbb27a); color:#241f08; } /* 見込み＝金 */
+  .tile.apo      { background:linear-gradient(155deg,#9ec48a,#8fae7d); color:#13230b; } /* アポ＝草緑 */
+  .tile.undo     { background:linear-gradient(155deg,#3a342a,#2c2820); color:var(--ink-soft);
+                   box-shadow:inset 0 0 0 1px var(--card-edge); }
+  .tile.undo .tl { color:var(--ink-soft); }
+  .tile.undo:disabled{ opacity:.4; cursor:default; transform:none; filter:none; }
+
+  /* タイルの小さな今日の件数バッジ（自分のタップ集計が即見える＝鏡） */
+  .tile .cnt{
+    position:absolute; top:5px; right:8px;
+    font-size:11px; font-weight:800; font-feature-settings:"tnum";
+    color:rgba(26,24,21,.55);
+  }
+
+  /* ── トースト（軽い手応え） ───────────────── */
+  .toast{
+    position:fixed; left:50%; bottom:calc(52% + 6px); transform:translateX(-50%) translateY(8px);
+    background:#252119; color:var(--ink); border:1px solid var(--card-edge);
+    padding:10px 16px; border-radius:12px; font-size:13.5px; font-weight:700;
+    box-shadow:0 10px 30px -10px rgba(0,0,0,.8);
+    opacity:0; pointer-events:none; transition:opacity .22s ease, transform .22s ease; z-index:9999;
+    white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.apo{ border-color:#1e5c49; color:var(--leaf); }
+  .toast.sample{ border-color:#6a5a3a; }
+  .toast .small{ font-weight:400; color:var(--ink-faint); font-size:11.5px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== 上半分：スコアボード（今日の鏡） ===== -->
+  <section class="board">
+
+    <div class="head">
+      <span class="clock" id="clock">―</span>
+      <span class="name">きょうの足あと・<b id="nick">ハヤテ</b></span>
+    </div>
+
+    <!-- 行動KPI＝歩いた家（主役・足で稼いだ努力を讃える） -->
+    <div class="heroNum">
+      <div class="lbl">歩いた家</div>
+      <div class="val" id="heroVisit">0<span class="unit">軒</span></div>
+    </div>
+
+    <!-- 一筆の言葉（数字に応じて文面が変わる） -->
+    <div class="fude" id="fude">きょうも、ここから。</div>
+
+    <!-- 結果KPI＝話せた／見込み／アポ（控えめ・出てなくても責めない） -->
+    <div class="res3">
+      <div class="r"><div class="rl">話せた</div><div class="rv"><span id="nTalk">0</span><span class="u">人</span></div></div>
+      <div class="r"><div class="rl">見込み</div><div class="rv"><span id="nLead">0</span><span class="u">件</span></div></div>
+      <div class="r apo"><div class="rl">お約束</div><div class="rv"><span id="nApo">0</span><span class="u">件</span></div></div>
+    </div>
+
+    <!-- 隠さない原則（小さく明記） -->
+    <div class="mirror">
+      記録するのはタップした“点”だけ（位置・時刻・精度・結果）。常時追跡しない。これはあなたの鏡。
+    </div>
+  </section>
+
+  <!-- ===== 下半分：LINEリッチメニュー風 入力グリッド（1タップ記録） ===== -->
+  <section class="grid" id="grid">
+    <button class="tile rusu"     data-code="rusu">     <span class="cnt" id="c_rusu">0</span><span class="ic">🏠</span><span class="tl">留守</span></button>
+    <button class="tile kotowari" data-code="kotowari"> <span class="cnt" id="c_kotowari">0</span><span class="ic">🚫</span><span class="tl">断られた</span></button>
+    <button class="tile hanaseta" data-code="hanaseta"> <span class="cnt" id="c_hanaseta">0</span><span class="ic">💬</span><span class="tl">話せた</span></button>
+    <button class="tile mikomi"   data-code="mikomi">   <span class="cnt" id="c_mikomi">0</span><span class="ic">⭐</span><span class="tl">見込みあり</span></button>
+    <button class="tile apo"      data-code="apo">      <span class="cnt" id="c_apo">0</span><span class="ic">🎯</span><span class="tl">アポ獲得</span></button>
+    <button class="tile undo" id="undoTile" disabled>   <span class="ic">↩️</span><span class="tl">取り消し</span></button>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   統合スコア入力画面（単一HTML・外部依存なし／フォントCDN1本のみ）
+
+   設計：
+     上半分＝スコアボード（行動KPI=訪問件数を主役に大きく、結果KPI=話せた/見込み/アポを控えめに、
+            一筆の言葉を数字に応じて添える）
+     下半分＝LINEリッチメニュー風グリッド（2列×3行＝6枠）。
+            タイルを1タップ＝その瞬間に「位置(緯度経度・精度)＋時刻＋結果」を1件保存し、
+            上のスコアボードを即更新。6枠目は「取り消し（直前1件を戻す）」。
+
+   1タップ＝1レコードの形（★本番DBとの対応）：
+     { lat, lng, acc, dev_time, result }
+       lat      … 緯度
+       lng      … 経度
+       acc      … 誤差(m)＝geolocation の accuracy
+       dev_time … 端末時刻（ISO文字列）
+       result   … 結果コード（rusu/kotowari/hanaseta/mikomi/apo）＝TEXT
+   ★本番では、この1レコードを 背骨v3 の activity_log に「1行追加」するだけ。
+     結果コードは TEXT 列を1本足すだけで載る＝スキーマ凍結は不要。
+     →差し替えポイントは saveRecord() 内の「★API送信ポイント」コメント箇所。
+   ========================================================================= */
+
+// 結果コード → 表示名（トースト・一筆用）
+var RESULT_LABEL = {
+  rusu:"留守", kotowari:"断られた", hanaseta:"話せた",
+  mikomi:"見込みあり", apo:"アポ獲得"
+};
+
+// あだ名（本番は端末/ログインから）
+var NICK = "ハヤテ";
+
+// サンプル位置（東京近郊の住宅地・フォールバック用）
+var SAMPLE = { lat:35.7008, lng:139.5503, acc:35 };
+
+// 画面内の保存先（＝本番はDB activity_log の1行ずつ）
+var records = [];
+
+/* ----------------------------------------------------------------
+   1タイルタップ＝その場で位置を取って1件記録する（速さが命）
+   位置は navigator.geolocation.getCurrentPosition(高精度)。
+   file:// や許可拒否では取れない → サンプル座標へフォールバックし小さく明示。
+   ---------------------------------------------------------------- */
+function recordVisit(code, tileEl){
+  // 押した瞬間に光る（位置取得を待たせない手応え）
+  if(tileEl){ tileEl.classList.remove('flash'); void tileEl.offsetWidth; tileEl.classList.add('flash'); }
+
+  if(!navigator.geolocation){
+    saveRecord(code, SAMPLE.lat, SAMPLE.lng, SAMPLE.acc, true);
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    function(pos){ // 成功（本番HTTPSで実測が動く）
+      var c = pos.coords;
+      saveRecord(code, c.latitude, c.longitude, c.accuracy, false);
+    },
+    function(err){ // 失敗（許可拒否・file://・非HTTPS など）→ サンプルへ
+      // 住宅地らしく少しだけずらす
+      var lat = SAMPLE.lat + (Math.random()-0.5)*0.0008;
+      var lng = SAMPLE.lng + (Math.random()-0.5)*0.0008;
+      saveRecord(code, lat, lng, SAMPLE.acc, true);
+    },
+    { enableHighAccuracy:true, timeout:8000, maximumAge:0 }
+  );
+}
+
+// --- 1件保存（配列push＋スコアボード即更新＋トースト） ---
+function saveRecord(code, lat, lng, acc, isSample){
+  var now = new Date();
+  var rec = {
+    lat: lat,
+    lng: lng,
+    acc: Math.round(acc),
+    dev_time: now.toISOString(),
+    result: code,
+    _timeLabel: hhmm(now),
+    _isSample: !!isSample
+  };
+  records.push(rec);
+
+  /* ★API送信ポイント（本番）：ここで rec を背骨v3 activity_log に1行POSTする。
+     例）fetch('/api/activity_log', {method:'POST', body:JSON.stringify(rec)});
+     失敗時はローカル保持→再送、で取りこぼし0に。今は画面内配列のみ。 */
+
+  renderScore(true);
+
+  // 手応え：トースト「記録した：話せた・誤差8m」
+  var label = RESULT_LABEL[code] || code;
+  var accTxt = isSample
+    ? '<span class="small">サンプル位置（本番はHTTPSで実測）</span>'
+    : '<span class="small">誤差 約'+rec.acc+'m</span>';
+  toast('記録した：' + label + '　' + accTxt, code==='apo' ? 'apo' : (isSample ? 'sample' : ''));
+}
+
+// --- 直前1件を取り消す（タップ間違い救済・罰しない） ---
+function undoLast(){
+  if(records.length===0) return;
+  var r = records.pop();
+  renderScore(false);
+  toast('1件もどした：' + (RESULT_LABEL[r.result]||r.result), '');
+}
+
+/* ----------------------------------------------------------------
+   スコアボードの再計算・描画（数字は自分のタップから自動集計＝報告ゼロ）
+   bump=true なら主役の数字を一瞬大きくして「増えた」手応えを出す
+   ---------------------------------------------------------------- */
+function renderScore(bump){
+  var visit = records.length;     // 行動KPI＝訪問（歩いた家）
+  var talk=0, lead=0, apo=0;      // 結果KPI
+  var cnt = { rusu:0, kotowari:0, hanaseta:0, mikomi:0, apo:0 };
+  for(var i=0;i<records.length;i++){
+    var c = records[i].result;
+    if(cnt[c]!==undefined) cnt[c]++;
+    if(c==='hanaseta'||c==='mikomi'||c==='apo') talk++;   // 話せた以上
+    if(c==='mikomi'||c==='apo') lead++;                   // 見込み以上
+    if(c==='apo') apo++;
+  }
+
+  // 主役の数字（単位付き）
+  var hero = document.getElementById('heroVisit');
+  hero.innerHTML = visit + '<span class="unit">軒</span>';
+  if(bump){ hero.classList.remove('bump'); void hero.offsetWidth; hero.classList.add('bump'); }
+
+  // 結果KPI（控えめ）
+  document.getElementById('nTalk').textContent = talk;
+  document.getElementById('nLead').textContent = lead;
+  document.getElementById('nApo').textContent  = apo;
+
+  // タイルの件数バッジ
+  document.getElementById('c_rusu').textContent     = cnt.rusu;
+  document.getElementById('c_kotowari').textContent = cnt.kotowari;
+  document.getElementById('c_hanaseta').textContent = cnt.hanaseta;
+  document.getElementById('c_mikomi').textContent   = cnt.mikomi;
+  document.getElementById('c_apo').textContent      = cnt.apo;
+
+  // 一筆の言葉（数字に応じて文面が変わる）
+  document.getElementById('fude').innerHTML = buildFude(visit, talk, lead, apo);
+
+  // 取り消しタイルの活性
+  document.getElementById('undoTile').disabled = (records.length===0);
+}
+
+/* --- 一筆の言葉：行動（歩いた努力）を主役に讃え、結果は責めずに受けとめる ---
+   「一筆」の世界観の魂を残す。数字の層で温度を変える。 */
+function buildFude(v, t, lead, a){
+  if(v===0) return 'きょうも、ここから。';
+
+  // 行動の量で「足で稼いだ努力」を認める
+  var walked;
+  if(v >= 40)      walked = v + '軒。よく歩いた、見事な一日。';
+  else if(v >= 25) walked = '今日は<span class="em">' + v + '軒</span>、足で稼いだ。';
+  else if(v >= 12) walked = v + '軒。一歩ずつ、確かに進んだ。';
+  else             walked = v + '軒、よく動いた。';
+
+  // 結果（話せた・約束）を責めずに添える
+  var met;
+  if(a >= 1)       met = '心が通って、お約束も<span class="em">' + a + 'つ</span>。';
+  else if(t >= 1)  met = t + '人と、心が通う時間があった。';
+  else             met = '声は届かなくても、足は嘘をつかない。';
+
+  return walked + '<br>' + met;
+}
+
+// --- 時刻ラベル ---
+function hhmm(d){ return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+
+// --- ヘッダーの日付・時刻（実時刻に追従・1分ごと更新） ---
+function renderClock(){
+  var wk = ["日","月","火","水","木","金","土"];
+  var now = new Date();
+  var h = now.getHours();
+  var part = h < 5 ? "未明" : h < 11 ? "朝" : h < 16 ? "昼" : h < 19 ? "夕方" : "夜";
+  document.getElementById('clock').textContent =
+    (now.getMonth()+1) + "月" + now.getDate() + "日（" + wk[now.getDay()] + "）　" + part + " " + hhmm(now);
+}
+
+// --- トースト ---
+var toastTimer;
+function toast(html, kind){
+  var t = document.getElementById('toast');
+  t.className = 'toast' + (kind ? ' ' + kind : '');
+  t.innerHTML = html;
+  void t.offsetWidth;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1700);
+}
+
+// --- イベント結線 ---
+window.addEventListener('load', function(){
+  document.getElementById('nick').textContent = NICK;
+  renderClock();
+  setInterval(renderClock, 30000);
+  renderScore(false);
+
+  // 結果タイル（5枚）＝1タップで記録
+  var tiles = document.querySelectorAll('#grid .tile[data-code]');
+  for(var i=0;i<tiles.length;i++){
+    tiles[i].addEventListener('click', function(){
+      recordVisit(this.getAttribute('data-code'), this);
+    });
+  }
+  // 取り消しタイル
+  document.getElementById('undoTile').addEventListener('click', function(){
+    if(this.disabled) return;
+    undoLast();
+  });
+});
+</script>
+</body>
+</html>

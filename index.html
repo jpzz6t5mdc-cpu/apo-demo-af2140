@@ -12,33 +12,30 @@
   h1{font-size:21px;margin-bottom:4px;}
   .lead{color:#9aa3c0;font-size:13.5px;margin-bottom:8px;}
   .note{color:#ffc857;font-size:12px;background:rgba(255,200,87,.08);border:1px solid rgba(255,200,87,.3);border-radius:10px;padding:9px 12px;margin-bottom:20px;}
+  .sec{font-size:12px;color:#6b7390;margin:22px 4px 10px;letter-spacing:.04em;}
   a.card{display:block;text-decoration:none;color:#e8eaf2;background:#1e2230;border:1px solid #343b55;border-radius:16px;padding:16px 18px;margin-bottom:14px;transition:border-color .15s;}
   a.card:active{border-color:#5b8cff;background:#252a3d;}
+  a.hero{background:linear-gradient(135deg,#2a2118,#1e2230);border-color:#c9883c;}
   .ttl{font-size:16.5px;font-weight:700;margin-bottom:3px;}
   .ttl .emoji{margin-right:7px;}
   .desc{font-size:13px;color:#9aa3c0;}
   .tag{display:inline-block;font-size:11px;border-radius:99px;padding:2px 9px;margin-top:8px;}
-  .t-main{background:rgba(91,140,255,.15);border:1px solid #5b8cff;color:#9bbcff;}
-  .t-mirror{background:rgba(255,200,87,.12);border:1px solid #ffc857;color:#ffc857;}
+  .t-main{background:rgba(201,136,60,.16);border:1px solid #c9883c;color:#e7b06b;}
   .t-admin{background:rgba(61,220,151,.12);border:1px solid #3ddc97;color:#3ddc97;}
+  a.mini{display:block;text-decoration:none;color:#9aa3c0;background:#191c27;border:1px solid #2a3047;border-radius:12px;padding:10px 14px;margin-bottom:9px;font-size:13px;}
+  a.mini:active{border-color:#5b8cff;}
   .foot{font-size:11.5px;color:#6b7390;margin-top:18px;border-top:1px solid #343b55;padding-top:12px;}
 </style>
 </head>
 <body>
   <h1>📲 アポインター 試作</h1>
-  <p class="lead">蓄電池訪販・自動化①。スマホで触って確かめる用の試作メニューです。</p>
+  <p class="lead">蓄電池訪販・自動化①。スマホで触って確かめる用です。</p>
   <p class="note">⚠️ これは試作（架空データ）です。実顧客のデータは入っていません。</p>
 
-  <a class="card" href="input.html">
-    <div class="ttl"><span class="emoji">📍</span>入力画面（1軒タップ記録）</div>
-    <div class="desc">現場で1軒ごとに1タップ→位置・時刻・結果を記録。報告書ゼロ。</div>
-    <span class="tag t-main">いちばん大事・GPSはここで試せます</span>
-  </a>
-
-  <a class="card" href="mirror.html">
-    <div class="ttl"><span class="emoji">🧭</span>本人の画面（一筆の言葉）</div>
-    <div class="desc">今日を一筆で映す鏡。歩いた数を讃え、責めない。点数ゲームなし。</div>
-    <span class="tag t-mirror">仮デザイン（投票の本決めは後で）</span>
+  <a class="card hero" href="field.html">
+    <div class="ttl"><span class="emoji">📱</span>アポインター画面（スコア＋入力 一体）</div>
+    <div class="desc">上半分＝今日のスコアボード／下半分＝LINEのリッチメニュー風の大きいボタン。1軒1タップで記録→スコアが即増える。</div>
+    <span class="tag t-main">これが本命・GPSもここで試せます</span>
   </a>
 
   <a class="card" href="admin.html">
@@ -49,9 +46,13 @@
 
   <a class="card" href="admin-google.html">
     <div class="ttl"><span class="emoji">💳</span>管理マップ（Google課金版モック）</div>
-    <div class="desc">払ったらこうなる完成イメージ。ピン→埋め込みストビュー＋住所検索。</div>
-    <span class="tag t-admin">無料でどこまで出せるかの比較つき</span>
+    <div class="desc">払ったらこうなる完成イメージ。ピン→埋め込みストビュー＋住所検索。無料との比較つき。</div>
+    <span class="tag t-admin">管理者用・課金検討の判断材料</span>
   </a>
+
+  <div class="sec">― 参考：統合前の旧バージョン ―</div>
+  <a class="mini" href="input.html">📍 旧・入力だけの画面</a>
+  <a class="mini" href="mirror.html">🧭 旧・本人スコアだけの画面（一筆）</a>
 
   <div class="foot">📖 設計の正本：~/AIカンパニー/AI-Company/プロジェクト/アポインター試作/　／　この入口は試作確認用・いつでも消せます</div>
 </body>
