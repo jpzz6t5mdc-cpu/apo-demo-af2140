@@ -122,6 +122,50 @@
   .table td{padding:7px 10px; border-top:1px solid var(--line); vertical-align:top;}
 
   .foot{margin-top:24px; font-size:11.5px; color:var(--sub); border-top:1px solid var(--line); padding-top:12px;}
+
+  /* 手動ピン（My Maps風） */
+  .tools{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;}
+  .btn{font-size:13px; padding:7px 14px; border-radius:99px; cursor:pointer;
+    border:1.5px solid var(--line); background:var(--card2); color:var(--txt); transition:.15s; font-family:inherit;}
+  .btn:hover{border-color:var(--accent);}
+  .btn.on{border-color:var(--ok); background:rgba(61,220,151,.18); color:#bff3da; font-weight:700;}
+  .tool-note{font-size:12px; color:var(--sub);}
+  #map.placing{cursor:crosshair;}
+
+  /* 手動ピンの小フォーム（地図タップ後に出る） */
+  .pinform{font-size:12.5px;}
+  .pinform .kinds{display:flex; flex-wrap:wrap; gap:5px; margin:6px 0 8px;}
+  .pinform .kind{font-size:12.5px; padding:4px 9px; border-radius:8px; cursor:pointer;
+    border:1.5px solid var(--line); background:var(--card2); color:var(--txt);}
+  .pinform .kind.on{border-color:var(--accent); background:rgba(91,140,255,.18); color:#cfe0ff; font-weight:700;}
+  .pinform textarea{width:100%; min-width:210px; background:var(--card2); color:var(--txt);
+    border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-family:inherit; font-size:12.5px; resize:vertical;}
+  .pinform .row{display:flex; gap:6px; margin-top:8px;}
+  .pinform .row .btn{flex:1; text-align:center; padding:6px 0;}
+  .pinform .btn.primary{border-color:var(--ok); background:rgba(61,220,151,.18); color:#bff3da; font-weight:700;}
+  .pinform .btn.danger{border-color:var(--red); color:#ffb3b3;}
+
+  /* 手動ピンのアイコン（◆▲🅿🚩📝・白フチで航空写真でも沈まない） */
+  .manual-icon span{font-size:22px; line-height:26px; text-align:center; display:block;
+    text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px rgba(0,0,0,.6);}
+  .leaflet-tooltip.manual-label{
+    background:rgba(20,22,28,.82); color:#eef1fb; border:1px solid rgba(255,255,255,.55);
+    border-radius:7px; padding:2px 7px; font-size:11.5px; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.5); white-space:nowrap;}
+  .leaflet-tooltip.manual-label::before{display:none;}
+
+  /* 取り込み欄 */
+  .importbox{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:14px;}
+  .importbox textarea{width:100%; min-height:74px; background:var(--card2); color:var(--txt);
+    border:1px solid var(--line); border-radius:9px; padding:9px 11px; font-family:inherit; font-size:13px; resize:vertical;}
+  .importbox .row{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:9px;}
+  .importbox .msg{font-size:12.5px; min-height:18px;}
+  .importbox .msg.ok{color:var(--ok);} .importbox .msg.err{color:var(--red);}
+  .importbox .hint{font-size:11.5px; color:var(--sub); margin-top:4px;}
+  .real-badge{display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:99px;
+    border:1px solid var(--ok); color:var(--ok); background:rgba(61,220,151,.1); margin-left:6px;}
+  .demo-badge{display:inline-block; font-size:10.5px; padding:1px 7px; border-radius:99px;
+    border:1px solid var(--sub); color:var(--sub); background:rgba(138,147,173,.1); margin-left:6px;}
+
   @media(max-width:560px){
     h1{font-size:18px;} #map{height:340px;}
     .badges{margin-left:0; width:100%;}
@@ -156,6 +200,12 @@
     <button class="chip toggle on" id="grayToggle">うすいピンも見る</button>
   </div>
 
+  <!-- 道具：手動ピン（My Maps風） -->
+  <div class="tools">
+    <button class="btn" id="placeBtn">📌 ピンを置く</button>
+    <span class="tool-note" id="placeNote">オーナーが自分で置くピン（見込み/断り/駐車/旗/メモ）。地図に残ります。</span>
+  </div>
+
   <div id="map"></div>
 
   <div class="legend">
@@ -165,13 +215,30 @@
     <span><span class="dot gray"></span>うすいピン＝場所がぼやけてた印（はじめからシロ扱い）</span>
     <span><span class="ring"></span>まわりの円＝その時どれくらい場所が正確だったか（小さいほど正確）</span>
     <span>◆☀▲ <b>見込み客ピン</b>＝足あととは別。横のコメントが見込み/再訪/お断りの目印（オーナーのMy Maps風）</span>
+    <span>📌 <b>自分で置いたピン</b>＝「📌 ピンを置く」で地図タップ。◆見込み/▲断り/🅿駐車/🚩旗/📝メモ。クリックで直す・消せる</span>
     <span style="flex-basis:100%;color:#cfe0ff;">🛰️ <b>航空写真にした理由</b>＝屋根を上から見て太陽光パネルの有無を確認し、蓄電池の見込み客を絞り込むため（右上のボタンで「航空写真・詳細(Esri＝もっと深く拡大)／航空写真(国土地理院)／道路地図」を切替）</span>
     <span style="flex-basis:100%;color:#9aa3c0;">🚶 ピンをタップして出る「ストリートビューで見る」は<b>Googleのページを開きます（キー登録・課金不要＝¥0）</b>。地図そのものはEsri／国土地理院の<b>無料の航空写真</b>です。</span>
   </div>
 
+  <!-- 現場の記録を取り込む（LINE集計方式） -->
+  <h2>📥 現場の記録を取り込む（LINEで送られた「APO1:」のコードを貼る）</h2>
+  <div class="importbox">
+    <textarea id="importText" placeholder="現場の人がLINEで送ってきた「APO1:〜」をここに貼り付け（複数行＝複数人ぶんOK）"></textarea>
+    <div class="row">
+      <button class="btn" id="importBtn">📥 取り込む</button>
+      <button class="btn danger" id="clearImportBtn">取り込みを全部消す</button>
+      <span class="msg" id="importMsg"></span>
+    </div>
+    <div class="hint">※ サーバー無し・¥0。貼ったコードは <b>この端末のブラウザにだけ</b> 保存します（開き直しても残ります）。サンプルの3人とは色・名前で区別して足します。</div>
+  </div>
+
   <!-- 担当カード -->
-  <h2>👤 担当3人の通信簿（カードをタップすると地図がその人へ寄ります）</h2>
+  <h2>👤 担当3人の通信簿 <span class="demo-badge">サンプル</span>（カードをタップすると地図がその人へ寄ります）</h2>
   <div class="cards" id="cards"></div>
+
+  <!-- 取り込んだ実データの集計カード -->
+  <h2 id="realHead" style="display:none;">📥 取り込んだ現場の記録 <span class="real-badge">実データ</span></h2>
+  <div class="cards" id="realCards"></div>
 
   <!-- 説明パネル -->
   <h2>📖 考え方の説明（読みたい時だけ開いてください）</h2>
@@ -595,6 +662,283 @@ document.querySelectorAll('.card').forEach(function(card){
 });
 
 render();
+
+/* =========================================================================
+   ① 手動ピン（My Maps風・地図タップで置ける／localStorageに保存）
+   ========================================================================= */
+var LS_PINS = 'apoMap_manualPins_v1';
+var PIN_KINDS = [
+  {key:'mikomi', icon:'◆', color:'#ffc857', label:'◆見込み'},
+  {key:'kotowari', icon:'▲', color:'#ff6b6b', label:'▲断り'},
+  {key:'parking', icon:'🅿', color:'#5b8cff', label:'🅿駐車'},
+  {key:'flag', icon:'🚩', color:'#3ddc97', label:'🚩旗'},
+  {key:'memo', icon:'📝', color:'#9aa3c0', label:'📝メモ'}
+];
+function kindOf(key){ for(var i=0;i<PIN_KINDS.length;i++){ if(PIN_KINDS[i].key===key) return PIN_KINDS[i]; } return PIN_KINDS[0]; }
+
+var manualPins = [];     // {id,lat,lng,kind,comment}
+var manualMarkers = {};  // id -> L.marker
+var manualLayer = L.layerGroup().addTo(map);
+var placing = false;
+
+function loadPins(){
+  try{ manualPins = JSON.parse(localStorage.getItem(LS_PINS) || '[]'); }
+  catch(e){ manualPins = []; }
+  if(!Array.isArray(manualPins)) manualPins = [];
+}
+function savePins(){
+  try{ localStorage.setItem(LS_PINS, JSON.stringify(manualPins)); }catch(e){}
+}
+
+// エスケープ（コメントをHTMLに安全に入れる）
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+function drawPin(p){
+  var k = kindOf(p.kind);
+  var icon = L.divIcon({ className:'manual-icon',
+    html:'<span style="color:'+k.color+';">'+k.icon+'</span>',
+    iconSize:[26,26], iconAnchor:[13,13] });
+  var m = L.marker([p.lat,p.lng], {icon:icon});
+  var label = k.icon + (p.comment ? ' '+p.comment : '');
+  m.bindTooltip(label, {permanent:true, direction:'right', className:'manual-label', offset:[10,0]});
+  m.on('click', function(){ openPinForm(p, m); });
+  m.addTo(manualLayer);
+  manualMarkers[p.id] = m;
+}
+function redrawPin(p){
+  if(manualMarkers[p.id]){ manualLayer.removeLayer(manualMarkers[p.id]); delete manualMarkers[p.id]; }
+  drawPin(p);
+}
+function renderAllPins(){
+  manualLayer.clearLayers(); manualMarkers = {};
+  manualPins.forEach(drawPin);
+}
+
+// ピンの小フォーム（新規 or 既存編集）をポップアップで出す
+function openPinForm(p, marker){
+  var isNew = !p.id;
+  var sel = p.kind || 'mikomi';
+  var kindsHtml = PIN_KINDS.map(function(k){
+    return '<span class="kind'+(k.key===sel?' on':'')+'" data-k="'+k.key+'">'+k.label+'</span>';
+  }).join('');
+  var html =
+    '<div class="pinform">'+
+      '<div style="font-weight:700;margin-bottom:2px;">'+(isNew?'📌 新しいピン':'📌 ピンを直す')+'</div>'+
+      '<div class="kinds">'+kindsHtml+'</div>'+
+      '<textarea rows="2" placeholder="コメント（例：太陽光あり・夕方再訪）">'+esc(p.comment||'')+'</textarea>'+
+      '<div class="row">'+
+        '<span class="btn primary" data-act="save">確定</span>'+
+        (isNew ? '<span class="btn" data-act="cancel">やめる</span>'
+               : '<span class="btn danger" data-act="del">消す</span>')+
+      '</div>'+
+      '<div style="margin-top:6px;">'+svLink(p.lat, p.lng)+'</div>'+
+    '</div>';
+
+  var popup = L.popup({maxWidth:280, minWidth:220, closeButton:true})
+    .setLatLng([p.lat, p.lng]).setContent(html).openOn(map);
+
+  // ポップアップ内のイベント結線
+  var el = popup.getElement();
+  var chosen = sel;
+  el.querySelectorAll('.kind').forEach(function(b){
+    b.addEventListener('click', function(){
+      el.querySelectorAll('.kind').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on'); chosen = b.dataset.k;
+    });
+  });
+  el.querySelector('[data-act="save"]').addEventListener('click', function(){
+    var comment = el.querySelector('textarea').value.trim();
+    if(isNew){
+      var np = {id:'p'+Date.now()+Math.floor(Math.random()*1000), lat:p.lat, lng:p.lng, kind:chosen, comment:comment};
+      manualPins.push(np); savePins(); drawPin(np);
+    } else {
+      p.kind = chosen; p.comment = comment; savePins(); redrawPin(p);
+    }
+    map.closePopup(popup);
+  });
+  var cancelBtn = el.querySelector('[data-act="cancel"]');
+  if(cancelBtn) cancelBtn.addEventListener('click', function(){ map.closePopup(popup); });
+  var delBtn = el.querySelector('[data-act="del"]');
+  if(delBtn) delBtn.addEventListener('click', function(){
+    manualPins = manualPins.filter(function(x){ return x.id!==p.id; });
+    savePins();
+    if(manualMarkers[p.id]){ manualLayer.removeLayer(manualMarkers[p.id]); delete manualMarkers[p.id]; }
+    map.closePopup(popup);
+  });
+}
+
+// 「ピンを置く」モードのON/OFF
+var placeBtn = document.getElementById('placeBtn');
+var placeNote = document.getElementById('placeNote');
+var mapEl = document.getElementById('map');
+function setPlacing(on){
+  placing = on;
+  placeBtn.classList.toggle('on', on);
+  placeBtn.textContent = on ? '📌 ピンを置く（ON・地図をタップ）' : '📌 ピンを置く';
+  mapEl.classList.toggle('placing', on);
+  placeNote.textContent = on ? '地図をタップした所にピンが付きます。もう一度ボタンでOFF。'
+    : 'オーナーが自分で置くピン（見込み/断り/駐車/旗/メモ）。地図に残ります。';
+}
+placeBtn.addEventListener('click', function(){ setPlacing(!placing); });
+
+map.on('click', function(e){
+  if(!placing) return;
+  setPlacing(false); // 1タップ＝1ピン。置いたらモード解除（誤連打防止）
+  openPinForm({lat:e.latlng.lat, lng:e.latlng.lng}, null);
+});
+
+loadPins();
+renderAllPins();
+
+/* =========================================================================
+   ② 現場の記録を取り込む（LINE集計方式・APO1コードをデコード）
+   コード形式：APO1: + base64url(JSON)
+   payload = { who, date, visits:[ {hm,lat,lng,acc,r} ... ] }
+   r（結果）：留=留守 / 断=断られた / 話=話せた / 見=見込みあり / ア=アポ獲得
+   ========================================================================= */
+var LS_IMPORT = 'apoMap_importedRaw_v1';
+var R_INFO = {  // 結果コード → 表示名・色
+  '留':{name:'留守', color:'#8a93ad'},
+  '断':{name:'断られた', color:'#ff6b6b'},
+  '話':{name:'話せた', color:'#ffc857'},
+  '見':{name:'見込みあり', color:'#5b8cff'},
+  'ア':{name:'アポ獲得', color:'#3ddc97'}
+};
+// 取り込んだ人ごとの色（サンプル3人の緑/青/赤とかぶらないよう別系統）
+var IMPORT_COLORS = ['#c084fc','#fb923c','#22d3ee','#f472b6','#a3e635','#fbbf24'];
+
+var importedRaw = [];     // 取り込んだコード文字列（生データ）
+var importedLayer = L.layerGroup().addTo(map);
+var importMsg = document.getElementById('importMsg');
+var realCardsBox = document.getElementById('realCards');
+var realHead = document.getElementById('realHead');
+
+// base64url → JSON（-→+ _→/ 補完後 atob）。UTF-8（日本語）対応で復元
+function decodeApo1(code){
+  var s = code.trim();
+  if(s.indexOf('APO1:')!==0) return null;
+  var b64 = s.slice(5).trim().replace(/-/g,'+').replace(/_/g,'/');
+  while(b64.length % 4) b64 += '=';
+  var bin = atob(b64);
+  // atob はバイト列 → UTF-8 として復元（日本語の名前/コメントを正しく戻す）
+  var bytes = new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  var json = decodeURIComponent(Array.prototype.map.call(bytes, function(b){
+    return '%' + ('0'+b.toString(16)).slice(-2); }).join(''));
+  return JSON.parse(json);
+}
+
+function loadImport(){
+  try{ importedRaw = JSON.parse(localStorage.getItem(LS_IMPORT) || '[]'); }
+  catch(e){ importedRaw = []; }
+  if(!Array.isArray(importedRaw)) importedRaw = [];
+}
+function saveImport(){
+  try{ localStorage.setItem(LS_IMPORT, JSON.stringify(importedRaw)); }catch(e){}
+}
+
+// 取り込み済みコードを地図＋集計カードに描き直す
+function renderImported(){
+  importedLayer.clearLayers();
+  realCardsBox.innerHTML = '';
+  if(importedRaw.length===0){ realHead.style.display='none'; return; }
+
+  var ci = 0;
+  importedRaw.forEach(function(code){
+    var payload;
+    try{ payload = decodeApo1(code); }catch(e){ payload = null; }
+    if(!payload || !Array.isArray(payload.visits)) return;
+
+    var who = payload.who || '名前なし';
+    var date = payload.date || '';
+    var color = IMPORT_COLORS[ci % IMPORT_COLORS.length]; ci++;
+
+    var n=0, talks=0, mikomi=0, apo=0;
+    payload.visits.forEach(function(v){
+      if(v.lat==null || v.lng==null) return;
+      n++;
+      if(v.r==='話') talks++;
+      if(v.r==='見') mikomi++;
+      if(v.r==='ア') apo++;
+
+      var ri = R_INFO[v.r] || {name:(v.r||'記録'), color:color};
+      // ピン本体＝人の色（だれの足あとか）／内側はそのまま、フチを白く
+      var marker = L.circleMarker([v.lat, v.lng], {
+        radius:8, color:'#ffffff', weight:2.5, opacity:1,
+        fillColor: color, fillOpacity:1
+      });
+      // 精度円
+      if(v.acc!=null){
+        L.circle([v.lat, v.lng], {radius:v.acc, color:'#dfe8ff', weight:2, opacity:.7,
+          fillColor:'#5b8cff', fillOpacity:.12, dashArray:'4 4'}).addTo(importedLayer);
+      }
+      var pop =
+        '<div class="pop-title" style="color:'+color+'">'+esc(who)+' <span class="real-badge">実データ</span></div>'+
+        '<div class="pop-row">押した時刻 '+esc(v.hm||'')+(date?' ／ '+esc(date):'')+'</div>'+
+        (v.acc!=null?'<div class="pop-row">その時の正確さ（誤差）：約 '+esc(v.acc)+' m</div>':'')+
+        '<div class="pop-row">結果：<b style="color:'+ri.color+'">'+esc(ri.name)+'</b></div>'+
+        '<div>'+svLink(v.lat, v.lng)+'</div>';
+      marker.bindPopup(pop);
+      // 横に時刻＋結果（結果色のフチ感は文字で）
+      marker.bindTooltip((v.hm?esc(v.hm)+' ':'')+esc(ri.name), {
+        permanent:true, direction:'right', className:'foot-label', offset:[6,0] });
+      marker.addTo(importedLayer);
+    });
+
+    // 人ごとの集計カード（実データ＝デモと区別）
+    var card =
+      '<div class="card">'+
+        '<div class="card-head">'+
+          '<span class="pin" style="background:'+color+'"></span>'+
+          '<div><div class="name">'+esc(who)+'</div><div class="role">取り込んだ記録'+(date?'（'+esc(date)+'）':'')+'</div></div>'+
+          '<span class="verdict v-ok" style="color:'+color+';border-color:'+color+';background:transparent;">実データ</span>'+
+        '</div>'+
+        '<div class="kpis">'+
+          '<div class="kpi"><div class="n">'+n+'</div><div class="t">訪問数</div></div>'+
+          '<div class="kpi"><div class="n">'+talks+'</div><div class="t">話せた</div></div>'+
+          '<div class="kpi"><div class="n">'+mikomi+'</div><div class="t">見込み</div></div>'+
+          '<div class="kpi"><div class="n">'+apo+'</div><div class="t">アポ</div></div>'+
+        '</div>'+
+      '</div>';
+    realCardsBox.insertAdjacentHTML('beforeend', card);
+  });
+  realHead.style.display = realCardsBox.children.length>0 ? '' : 'none';
+}
+
+var importBtn = document.getElementById('importBtn');
+var importText = document.getElementById('importText');
+importBtn.addEventListener('click', function(){
+  var lines = importText.value.split(/\r?\n/).map(function(s){ return s.trim(); })
+    .filter(function(s){ return s.indexOf('APO1:')===0; });
+  if(lines.length===0){
+    importMsg.className='msg err';
+    importMsg.textContent='「APO1:」で始まるコードが見つかりません。LINEで送られた行をそのまま貼ってください。';
+    return;
+  }
+  var ok=0, ng=0;
+  lines.forEach(function(code){
+    try{
+      var p = decodeApo1(code);
+      if(p && Array.isArray(p.visits)){ importedRaw.push(code); ok++; }
+      else ng++;
+    }catch(e){ ng++; }
+  });
+  saveImport();
+  renderImported();
+  importMsg.className = ok>0 ? 'msg ok' : 'msg err';
+  importMsg.textContent = (ok>0 ? '✅ '+ok+'人ぶん取り込みました。地図と下のカードに追加。' : '')
+    + (ng>0 ? '（読めなかったコード '+ng+' 件）' : '');
+  if(ok>0) importText.value='';
+});
+
+document.getElementById('clearImportBtn').addEventListener('click', function(){
+  importedRaw = []; saveImport(); renderImported();
+  importMsg.className='msg'; importMsg.textContent='取り込んだ記録を全部消しました（サンプル3人は残ります）。';
+});
+
+loadImport();
+renderImported();
 </script>
 </body>
 </html>

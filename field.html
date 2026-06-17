@@ -188,6 +188,67 @@
   .toast.apo{ border-color:#1e5c49; color:var(--leaf); }
   .toast.sample{ border-color:#6a5a3a; }
   .toast .small{ font-weight:400; color:var(--ink-faint); font-size:11.5px; }
+
+  /* ── ④ 今日の記録を送る ボタン ───────────── */
+  .shareBtn{
+    margin:6px auto 0; display:block;
+    background:rgba(217,138,91,.10);
+    border:1px solid rgba(217,138,91,.5);
+    color:var(--vermilion-soft);
+    font-family:inherit; font-size:13.5px; font-weight:700; letter-spacing:.03em;
+    padding:8px 18px; border-radius:999px; cursor:pointer;
+    transition:transform .07s ease, filter .15s ease;
+  }
+  .shareBtn:active{ transform:scale(.96); filter:brightness(1.12); }
+
+  /* 同意取り消し/記録を消す（極小・控えめ） */
+  .mirror .privacy{
+    display:inline-block; margin-top:3px;
+    color:var(--ink-faint); text-decoration:underline; text-underline-offset:2px;
+    cursor:pointer;
+  }
+
+  /* ── ②③ モーダル（同意・あだ名・プライバシー） ─────── */
+  .overlay{
+    position:fixed; inset:0; z-index:10000;
+    display:none; align-items:center; justify-content:center;
+    padding:24px;
+    background:rgba(10,9,7,.78); backdrop-filter:blur(3px);
+  }
+  .overlay.show{ display:flex; }
+  .modal{
+    width:100%; max-width:360px;
+    background:var(--card); border:1px solid var(--card-edge);
+    border-radius:18px; padding:22px 20px;
+    box-shadow:0 20px 60px -16px rgba(0,0,0,.85);
+    color:var(--ink); text-align:left;
+  }
+  .modal h2{
+    font-family:"Yuji Syuku","Hiragino Mincho ProN",serif;
+    font-size:20px; font-weight:400; color:var(--gold);
+    letter-spacing:.05em; margin-bottom:10px;
+  }
+  .modal p{ font-size:13.5px; line-height:1.7; color:var(--ink-soft); margin-bottom:9px; }
+  .modal p b{ color:var(--ink); font-weight:700; }
+  .modal .mnote{ font-size:10.5px; color:var(--ink-faint); line-height:1.5; margin-top:12px; margin-bottom:0; }
+  .modal .minput{
+    width:100%; margin:4px 0 4px; padding:12px 14px;
+    background:var(--paper); border:1px solid var(--card-edge); border-radius:12px;
+    color:var(--ink); font-family:inherit; font-size:18px; letter-spacing:.04em;
+    outline:none;
+  }
+  .modal .minput:focus{ border-color:var(--vermilion); }
+  .mbtns{ display:flex; gap:10px; margin-top:14px; }
+  .mbtns.col{ flex-direction:column; }
+  .mbtn{
+    flex:1; padding:12px 10px; border-radius:12px; cursor:pointer;
+    font-family:inherit; font-size:14.5px; font-weight:700; letter-spacing:.02em;
+    border:1px solid var(--card-edge); background:rgba(255,250,238,.04); color:var(--ink-soft);
+    transition:transform .07s ease, filter .15s ease;
+  }
+  .mbtn:active{ transform:scale(.97); filter:brightness(1.1); }
+  .mbtn.ok{ background:linear-gradient(155deg,#9ec48a,#8fae7d); color:#13230b; border-color:transparent; }
+  .mbtn.no{ background:transparent; color:var(--ink-faint); }
 </style>
 </head>
 <body>
@@ -217,9 +278,13 @@
       <div class="r apo"><div class="rl">お約束</div><div class="rv"><span id="nApo">0</span><span class="u">件</span></div></div>
     </div>
 
-    <!-- 隠さない原則（小さく明記） -->
+    <!-- ④ 今日の記録を送る（LINE集計方式） -->
+    <button class="shareBtn" id="shareBtn">📤 今日の記録を送る</button>
+
+    <!-- 隠さない原則（小さく明記）＋ 同意取り消し/記録を消す入口 -->
     <div class="mirror">
       記録するのはタップした“点”だけ（位置・時刻・精度・結果）。常時追跡しない。これはあなたの鏡。
+      <span class="privacy" id="privacyLink">同意を取り消す/記録を消す</span>
     </div>
   </section>
 
@@ -236,6 +301,9 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ②③ 同意／あだ名／プライバシーのモーダル受け皿 -->
+<div class="overlay" id="overlay"></div>
 
 <script>
 /* =========================================================================
@@ -266,14 +334,52 @@ var RESULT_LABEL = {
   mikomi:"見込みあり", apo:"アポ獲得"
 };
 
-// あだ名（本番は端末/ログインから）
-var NICK = "ハヤテ";
+// 結果コード → 共有用の短縮1字（★管理側と完全一致・厳守）
+var RESULT_SHORT = {
+  rusu:"留", kotowari:"断", hanaseta:"話", mikomi:"見", apo:"ア"
+};
+
+// localStorage キー（同意・あだ名は端末1回／記録は日付ごと）
+var LS_AGREE = "apo.agreed.v1";   // "1" なら同意済
+var LS_NICK  = "apo.nick.v1";     // あだ名
+var LS_REC_PREFIX = "apo.rec.";   // + YYYY-MM-DD で当日の記録（前日分は別キーで残る）
+
+// あだ名（同意後に1回入力・localStorage保存）
+var NICK = "";
 
 // サンプル位置（東京近郊の住宅地・フォールバック用）
 var SAMPLE = { lat:35.7008, lng:139.5503, acc:35 };
 
-// 画面内の保存先（＝本番はDB activity_log の1行ずつ）
+// 画面内の保存先（＝本番はDB activity_log の1行ずつ）。当日のキーに保存。
 var records = [];
+var TODAY = "";   // 今表示している日付 YYYY-MM-DD（日付が変わったら切り替え）
+
+// --- 日付キー（ローカル日付・端末タイムゾーン） ---
+function dateKey(d){
+  d = d || new Date();
+  return d.getFullYear() + '-' +
+    ('0'+(d.getMonth()+1)).slice(-2) + '-' +
+    ('0'+d.getDate()).slice(-2);
+}
+
+// --- 記録の読み書き（当日のキーに保存／前日分は別キーで保持される） ---
+function loadRecords(){
+  TODAY = dateKey();
+  records = [];
+  try{
+    var raw = localStorage.getItem(LS_REC_PREFIX + TODAY);
+    if(raw){ var arr = JSON.parse(raw); if(arr && arr.length) records = arr; }
+  }catch(e){ records = []; }
+}
+function persistRecords(){
+  try{ localStorage.setItem(LS_REC_PREFIX + TODAY, JSON.stringify(records)); }
+  catch(e){ /* 容量・プライベートモード等。画面内配列は保持される */ }
+}
+// 日付が変わっていたら当日分へ切り替え（開きっぱなしの日跨ぎ対策）
+function ensureToday(){
+  var k = dateKey();
+  if(k !== TODAY){ loadRecords(); renderScore(false); }
+}
 
 /* ----------------------------------------------------------------
    1タイルタップ＝その場で位置を取って1件記録する（速さが命）
@@ -316,10 +422,11 @@ function saveRecord(code, lat, lng, acc, isSample){
     _isSample: !!isSample
   };
   records.push(rec);
+  persistRecords();   // ① 記録が消えない：localStorageへ即保存
 
   /* ★API送信ポイント（本番）：ここで rec を背骨v3 activity_log に1行POSTする。
      例）fetch('/api/activity_log', {method:'POST', body:JSON.stringify(rec)});
-     失敗時はローカル保持→再送、で取りこぼし0に。今は画面内配列のみ。 */
+     失敗時はローカル保持→再送、で取りこぼし0に。今はlocalStorage保持。 */
 
   renderScore(true);
 
@@ -335,8 +442,68 @@ function saveRecord(code, lat, lng, acc, isSample){
 function undoLast(){
   if(records.length===0) return;
   var r = records.pop();
+  persistRecords();   // 取り消しも保存に反映
   renderScore(false);
   toast('1件もどした：' + (RESULT_LABEL[r.result]||r.result), '');
+}
+
+/* ----------------------------------------------------------------
+   ④ 今日の記録を送る（LINE集計方式）
+   先頭 "APO1:" ＋ JSON.stringify(payload) を base64url したもの。
+   payload = { who, date, visits:[ {hm,lat,lng,acc,r}, ... ] }
+   r は短縮1字（留/断/話/見/ア）。base64url = btoa後 +→- /→_ =除去。
+   navigator.share() があればOSの共有シート（LINE等）、無ければクリップボード。
+   ---------------------------------------------------------------- */
+function base64url(str){
+  // UTF-8安全に btoa（あだ名に日本語が入るため encodeURIComponent経由）
+  var b64 = btoa(unescape(encodeURIComponent(str)));
+  return b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function buildShareCode(){
+  var visits = [];
+  for(var i=0;i<records.length;i++){
+    var rec = records[i];
+    visits.push({
+      hm:  rec._timeLabel,
+      lat: Math.round(rec.lat*1e6)/1e6,   // 緯度（小数6桁＝約0.1m精度・桁を抑える）
+      lng: Math.round(rec.lng*1e6)/1e6,
+      acc: rec.acc,
+      r:   RESULT_SHORT[rec.result] || rec.result
+    });
+  }
+  var payload = { who: NICK, date: TODAY, visits: visits };
+  return 'APO1:' + base64url(JSON.stringify(payload));
+}
+function shareToday(){
+  if(records.length === 0){ toast('まだ記録がありません', ''); return; }
+  var code = buildShareCode();
+  var text = code; // LINEに貼る本体＝コード1行（管理側がデコードする）
+  if(navigator.share){
+    navigator.share({ text: text }).then(function(){
+      toast('共有しました', 'apo');
+    }).catch(function(){ /* キャンセル等は無視 */ });
+    return;
+  }
+  // 共有APIなし → クリップボードへコピー
+  copyText(text, function(ok){
+    toast(ok ? 'コピーしました <span class="small">LINEに貼って送ってください</span>'
+             : 'コピーできませんでした', ok ? '' : 'sample');
+  });
+}
+function copyText(text, cb){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ cb(true); }, function(){ fallbackCopy(text, cb); });
+  }else{ fallbackCopy(text, cb); }
+}
+function fallbackCopy(text, cb){
+  try{
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    var ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    cb(!!ok);
+  }catch(e){ cb(false); }
 }
 
 /* ----------------------------------------------------------------
@@ -425,12 +592,129 @@ function toast(html, kind){
   toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1700);
 }
 
+/* ----------------------------------------------------------------
+   ②③ 起動フロー：同意 → あだ名入力 → 本画面
+   ・同意/あだ名は端末に1回保存（2回目以降スキップ）
+   ・「同意を取り消す/記録を消す」入口を board隅に常設
+   ---------------------------------------------------------------- */
+function isAgreed(){ try{ return localStorage.getItem(LS_AGREE)==='1'; }catch(e){ return false; } }
+function getStoredNick(){ try{ return localStorage.getItem(LS_NICK) || ''; }catch(e){ return ''; } }
+
+function showOverlay(html){
+  var o = document.getElementById('overlay');
+  o.innerHTML = html;
+  o.classList.add('show');
+  return o;
+}
+function hideOverlay(){ document.getElementById('overlay').classList.remove('show'); }
+
+// 同意モーダル
+function askConsent(){
+  showOverlay(
+    '<div class="modal">'+
+      '<h2>この画面について</h2>'+
+      '<p>あなたが<b>押した時の「位置・時刻・結果」</b>を記録します。</p>'+
+      '<p>目的＝自分の活動の振り返りと、ちゃんと回ったかの確認。<br>'+
+        '<b>常時追跡はしません（押した“点”だけ）。</b></p>'+
+      '<p>あなた自身も、いつでも自分の記録を見られます。記録は会社と共有されます。</p>'+
+      '<div class="mbtns">'+
+        '<button class="mbtn ok" id="cAgree">同意して使う</button>'+
+        '<button class="mbtn no" id="cQuit">やめる</button>'+
+      '</div>'+
+      '<p class="mnote">※最終的な法的文言は将来 専門家（行政書士／弁護士）の確認予定。今は誠実な同意でのパイロット段階です。</p>'+
+    '</div>'
+  );
+  document.getElementById('cAgree').addEventListener('click', function(){
+    try{ localStorage.setItem(LS_AGREE,'1'); }catch(e){}
+    askNick();
+  });
+  document.getElementById('cQuit').addEventListener('click', function(){
+    showOverlay('<div class="modal"><h2>また今度</h2><p>同意がないと記録はできません。<br>使うときに、この画面を開き直してください。</p></div>');
+  });
+}
+
+// あだ名入力モーダル
+function askNick(){
+  showOverlay(
+    '<div class="modal">'+
+      '<h2>あだ名を1つ</h2>'+
+      '<p>記録に紐づく、あなたの呼び名です。</p>'+
+      '<input id="nickInput" class="minput" type="text" inputmode="text" '+
+        'autocomplete="off" maxlength="12" placeholder="例：ハヤテ" />'+
+      '<div class="mbtns">'+
+        '<button class="mbtn ok" id="nickOk">これで始める</button>'+
+      '</div>'+
+    '</div>'
+  );
+  var inp = document.getElementById('nickInput');
+  var pre = getStoredNick();
+  if(pre) inp.value = pre;
+  setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 60);
+  function done(){
+    var v = (inp.value||'').trim() || 'ハヤテ';
+    NICK = v;
+    try{ localStorage.setItem(LS_NICK, v); }catch(e){}
+    document.getElementById('nick').textContent = NICK;
+    hideOverlay();
+  }
+  document.getElementById('nickOk').addEventListener('click', done);
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') done(); });
+}
+
+// 同意取り消し／記録を消す
+function resetPrivacy(){
+  showOverlay(
+    '<div class="modal">'+
+      '<h2>記録のリセット</h2>'+
+      '<p>あなたの記録・あだ名・同意を、この端末から消します。</p>'+
+      '<div class="mbtns col">'+
+        '<button class="mbtn no" id="rAll">同意を取り消して全部消す</button>'+
+        '<button class="mbtn" id="rToday">今日の記録だけ消す</button>'+
+        '<button class="mbtn ok" id="rCancel">やめる（戻る）</button>'+
+      '</div>'+
+    '</div>'
+  );
+  document.getElementById('rAll').addEventListener('click', function(){
+    try{
+      // 全日付の記録 + 同意 + あだ名を削除
+      var del = [];
+      for(var i=0;i<localStorage.length;i++){
+        var k = localStorage.key(i);
+        if(k && k.indexOf(LS_REC_PREFIX)===0) del.push(k);
+      }
+      for(var j=0;j<del.length;j++) localStorage.removeItem(del[j]);
+      localStorage.removeItem(LS_AGREE);
+      localStorage.removeItem(LS_NICK);
+    }catch(e){}
+    records = []; NICK = '';
+    boot(); // 同意画面からやり直し
+  });
+  document.getElementById('rToday').addEventListener('click', function(){
+    records = []; persistRecords();
+    renderScore(false); hideOverlay();
+    toast('今日の記録を消しました', '');
+  });
+  document.getElementById('rCancel').addEventListener('click', hideOverlay);
+}
+
+// --- 起動 ---
+function boot(){
+  loadRecords();
+  renderScore(false);
+  NICK = getStoredNick();
+  if(NICK) document.getElementById('nick').textContent = NICK;
+  if(!isAgreed()){ askConsent(); }
+  else if(!NICK){ askNick(); }
+  else { hideOverlay(); }
+}
+
 // --- イベント結線 ---
 window.addEventListener('load', function(){
-  document.getElementById('nick').textContent = NICK;
   renderClock();
   setInterval(renderClock, 30000);
-  renderScore(false);
+  setInterval(ensureToday, 60000);   // 日跨ぎで当日キーへ自動切替
+
+  boot();
 
   // 結果タイル（5枚）＝1タップで記録
   var tiles = document.querySelectorAll('#grid .tile[data-code]');
@@ -444,6 +728,10 @@ window.addEventListener('load', function(){
     if(this.disabled) return;
     undoLast();
   });
+  // ④ 今日の記録を送る
+  document.getElementById('shareBtn').addEventListener('click', shareToday);
+  // 同意取り消し／記録を消す
+  document.getElementById('privacyLink').addEventListener('click', resetPrivacy);
 });
 </script>
 </body>
