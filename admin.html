@@ -60,6 +60,12 @@
     white-space:nowrap;}
   .leaflet-tooltip.foot-label{font-weight:600; color:#cfd8f0; font-size:11px;}
   .leaflet-tooltip.foot-label::before, .leaflet-tooltip.prospect-label::before{display:none;}
+  /* 📲 この端末の本人記録のラベル（紫フチ＝自動連動を色で区別） */
+  .leaflet-tooltip.self-label{
+    background:rgba(20,22,28,.82); color:#f0e2ff; border:1px solid rgba(192,132,252,.85);
+    border-radius:7px; padding:2px 7px; font-size:11px; font-weight:600;
+    box-shadow:0 1px 4px rgba(0,0,0,.5); white-space:nowrap;}
+  .leaflet-tooltip.self-label::before{display:none;}
   /* 見込み客ピンのアイコン（◆☀▲）＝足あとの丸ピンとは別の見た目・白フチで沈まない */
   .prospect-icon span{font-size:22px; line-height:26px; text-align:center; display:block;
     text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px rgba(0,0,0,.6);}
@@ -206,6 +212,18 @@
     <span class="tool-note" id="placeNote">オーナーが自分で置くピン（見込み/断り/駐車/旗/メモ）。地図に残ります。</span>
   </div>
 
+  <!-- 📲 この端末の本人記録（同一オリジンのlocalStorageを自動で読む） -->
+  <div class="tools">
+    <button class="btn" id="selfRefreshBtn">🔄 この端末の記録を更新</button>
+    <span class="tool-note" id="selfNote">📲 この端末の記録を読み込み中…</span>
+  </div>
+  <div class="mirror" style="border-color:#c084fc;background:linear-gradient(135deg,#2a2440,#1e2230);">
+    📲 <b>この端末の記録</b>＝同じスマホ／ブラウザの<b>本人画面</b>と<b>“自動”で連動</b>します。
+    <b style="color:#f0d0ff;">別の人・別のスマホの記録は、自動では来ません</b>——その人が
+    📤LINEで送った『APO1:』コードを、上の📥に貼ると地図に出ます
+    （<b>同じ端末＝自動</b>／<b>別端末＝貼り付け</b>、または将来サーバー連携）。
+  </div>
+
   <div id="map"></div>
 
   <div class="legend">
@@ -216,6 +234,7 @@
     <span><span class="ring"></span>まわりの円＝その時どれくらい場所が正確だったか（小さいほど正確）</span>
     <span>◆☀▲ <b>見込み客ピン</b>＝足あととは別。横のコメントが見込み/再訪/お断りの目印（オーナーのMy Maps風）</span>
     <span>📌 <b>自分で置いたピン</b>＝「📌 ピンを置く」で地図タップ。◆見込み/▲断り/🅿駐車/🚩旗/📝メモ。クリックで直す・消せる</span>
+    <span><span class="dot" style="background:#c084fc;border-style:dashed;"></span>📲 <b>この端末の記録（自分・自動連動）</b>＝同じスマホの本人画面でタップした足あと（紫の二重マル）。結果の色は横のラベルで（留守/断られた/話せた/見込み/アポ）。サンプル3人や取り込みとは色で区別</span>
     <span style="flex-basis:100%;color:#cfe0ff;">🛰️ <b>航空写真にした理由</b>＝屋根を上から見て太陽光パネルの有無を確認し、蓄電池の見込み客を絞り込むため（右上のボタンで「航空写真・詳細(Esri＝もっと深く拡大)／航空写真(国土地理院)／道路地図」を切替）</span>
     <span style="flex-basis:100%;color:#9aa3c0;">🚶 ピンをタップして出る「ストリートビューで見る」は<b>Googleのページを開きます（キー登録・課金不要＝¥0）</b>。地図そのものはEsri／国土地理院の<b>無料の航空写真</b>です。</span>
   </div>
@@ -939,6 +958,120 @@ document.getElementById('clearImportBtn').addEventListener('click', function(){
 
 loadImport();
 renderImported();
+
+/* =========================================================================
+   ③ この端末の本人記録を自動連動（同一オリジンのlocalStorageを直接読む）
+   本人画面 アポ_本人画面_統合スコア入力_試作.html が書く：
+     apo.nick.v1            … あだ名（文字列）
+     apo.rec.<YYYY-MM-DD>   … その日の記録(JSON配列)。各レコード＝
+        { lat,lng,acc,dev_time(ISO),result, _timeLabel(任意 "HH:MM") }
+     result ＝ rusu/kotowari/hanaseta/mikomi/apo （本人画面のRESULT_LABEL/色と一致）
+   ★コピーして二重保存しない＝本人画面の既存キーをそのまま参照（本人が正本）。
+   ========================================================================= */
+var SELF_REC_PREFIX = 'apo.rec.';   // 本人画面の記録キー接頭辞（厳守）
+var SELF_NICK_KEY   = 'apo.nick.v1';// 本人画面のあだ名キー（厳守）
+var SELF_COLOR      = '#c084fc';    // 自動連動の人色（紫・サンプル/取り込みと別系統）
+// result → 表示名・色（本人画面のRESULT_LABEL／タイル色と一致させる）
+var SELF_RESULT = {
+  rusu:    {name:'留守',     color:'#8a93ad'},
+  kotowari:{name:'断られた', color:'#ff6b6b'},
+  hanaseta:{name:'話せた',   color:'#ffc857'},
+  mikomi:  {name:'見込みあり', color:'#5b8cff'},
+  apo:     {name:'アポ獲得', color:'#3ddc97'}
+};
+
+var selfLayer = L.layerGroup().addTo(map);
+var selfNote  = document.getElementById('selfNote');
+
+// HH:MM を作る（_timeLabel優先、無ければ dev_time(ISO) から端末ローカル時刻）
+function selfHM(rec){
+  if(rec._timeLabel) return String(rec._timeLabel);
+  if(rec.dev_time){
+    var d = new Date(rec.dev_time);
+    if(!isNaN(d.getTime())) return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+  }
+  return '';
+}
+
+// localStorage全キーを走査して apo.rec.* を全日ぶん集める（複数日OK・古い日付順）
+function readSelfRecords(){
+  var days = [];   // {date, recs:[...]}
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if(!k || k.indexOf(SELF_REC_PREFIX)!==0) continue;
+      var date = k.slice(SELF_REC_PREFIX.length);
+      var arr;
+      try{ arr = JSON.parse(localStorage.getItem(k) || '[]'); }catch(e){ arr = []; }
+      if(Array.isArray(arr) && arr.length) days.push({date:date, recs:arr});
+    }
+  }catch(e){ /* プライベートモード等 → 静かに空 */ }
+  days.sort(function(a,b){ return a.date<b.date ? -1 : (a.date>b.date ? 1 : 0); });
+  return days;
+}
+function readSelfNick(){
+  try{ return localStorage.getItem(SELF_NICK_KEY) || ''; }catch(e){ return ''; }
+}
+
+// この端末の本人記録を足あとピンで描画（横に「時刻＋結果」・結果色のラベル）
+function renderSelf(){
+  selfLayer.clearLayers();
+  var nick = readSelfNick();
+  var days = readSelfRecords();
+  var total = 0;
+
+  days.forEach(function(day){
+    day.recs.forEach(function(rec){
+      if(rec.lat==null || rec.lng==null) return;
+      total++;
+      var ri = SELF_RESULT[rec.result] || {name:(rec.result||'記録'), color:SELF_COLOR};
+      var hm = selfHM(rec);
+
+      // 精度円（誤差）
+      if(rec.acc!=null){
+        L.circle([rec.lat, rec.lng], {radius:rec.acc, color:'#e9d5ff', weight:2, opacity:.7,
+          fillColor:SELF_COLOR, fillOpacity:.10, dashArray:'4 4'}).addTo(selfLayer);
+      }
+      // ピン本体＝紫の二重マル（自動連動を色で区別）。内側は結果色
+      var marker = L.circleMarker([rec.lat, rec.lng], {
+        radius:8, color:SELF_COLOR, weight:3, opacity:1,
+        fillColor:ri.color, fillOpacity:.95
+      });
+      var pop =
+        '<div class="pop-title" style="color:'+SELF_COLOR+'">📲 '+esc(nick||'この端末')+
+          ' <span class="real-badge" style="border-color:'+SELF_COLOR+';color:#e9d5ff;background:rgba(192,132,252,.12);">自動連動</span></div>'+
+        '<div class="pop-row">押した時刻 '+esc(hm)+(day.date?' ／ '+esc(day.date):'')+'</div>'+
+        (rec.acc!=null?'<div class="pop-row">その時の正確さ（誤差）：約 '+esc(rec.acc)+' m</div>':'')+
+        '<div class="pop-row">結果：<b style="color:'+ri.color+'">'+esc(ri.name)+'</b></div>'+
+        (rec._isSample?'<div class="pop-row" style="color:var(--sub);">※本人画面でサンプル位置（本番HTTPSで実測）</div>':'')+
+        '<div>'+svLink(rec.lat, rec.lng)+'</div>';
+      marker.bindPopup(pop);
+      // 横に常時「時刻＋結果」（紫フチのラベル）
+      marker.bindTooltip((hm?esc(hm)+' ':'')+esc(ri.name), {
+        permanent:true, direction:'right', className:'self-label', offset:[6,0] });
+      marker.addTo(selfLayer);
+    });
+  });
+
+  // 注記：未使用でもエラーにせず静かに案内
+  if(total===0){
+    selfNote.textContent = 'この端末にはまだ本人の記録がありません（同じスマホの本人画面でタップすると、ここに自動で出ます）。';
+  }else{
+    selfNote.textContent = '📲 この端末の記録（自分・自動連動）'+(nick?'：'+nick:'')+
+      ' ＝ '+total+'件を地図に表示中。本人画面で追記したら「🔄 この端末の記録を更新」。';
+  }
+}
+
+// 🔄 更新ボタン（開いた後に本人画面で追記された分を読み直して再描画）
+document.getElementById('selfRefreshBtn').addEventListener('click', renderSelf);
+
+// 別タブの本人画面が書き込んだら自動で再描画（同一オリジンのstorageイベント）
+window.addEventListener('storage', function(e){
+  if(!e.key) { renderSelf(); return; }   // clear() 等はkey=null
+  if(e.key===SELF_NICK_KEY || e.key.indexOf(SELF_REC_PREFIX)===0) renderSelf();
+});
+
+renderSelf();
 </script>
 </body>
 </html>
