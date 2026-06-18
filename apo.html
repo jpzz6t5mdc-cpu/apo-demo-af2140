@@ -786,9 +786,9 @@ function renderRankFull(d){
 
 // --- ③ ホームから1軒記録：#mapに入らず現在地にピン→マークを選ぶ（2タップ） ---
 // 保存先・マーク・関数は #map と同じ（apo.pins.v1 / 同じMARKS / savePins / renderPins を流用＝二重実装しない）
-var homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false };
+var homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false, pending:false };
 function openHomePick(){
-  homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false };
+  homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false, pending:false };
   var sheet = document.getElementById("homePick");
   var veil  = document.getElementById("homePickVeil");
   var meta  = document.getElementById("homePickMeta");
@@ -800,19 +800,30 @@ function openHomePick(){
   memo.value = ""; memo.style.display = "none";
   meta.textContent = "現在地を確認中…";
   veil.classList.add("show"); sheet.classList.add("show");
-  // チップ選択＝現在地ピンを即確定（マークを1つ選ぶ＝確定）
+  // チップ選択＝マークを選ぶ＝記録。GPSが遅くても“選んだマークを覚えて”位置が来たら自動で確定する
   document.getElementById("homePickChips").querySelectorAll(".chip").forEach(function(b){
     b.addEventListener("click", function(){
-      if(homePickState.lat==null) return;     // 位置確定前は押せない
       document.getElementById("homePickChips").querySelectorAll(".chip").forEach(function(x){ x.classList.remove("on"); });
       b.classList.add("on"); homePickState.mark = b.getAttribute("data-mk");
-      confirmHomePin();
+      if(homePickState.lat!=null){
+        confirmHomePin();                 // 位置が既に確定済み＝即記録
+      } else {
+        homePickState.pending = true;     // まだGPS待ち＝来たら自動で記録（取りこぼさない）
+        document.getElementById("homePickMeta").textContent =
+          "現在地を確認中…（"+markOf(homePickState.mark).label+"）届き次第このマークで記録します";
+      }
     });
   });
   // 現在地を取る（#mapと同じ getHere・記録時のGPS）
   getHere(function(h){
     homePickState.lat=h.lat; homePickState.lng=h.lng; homePickState.acc=h.acc; homePickState.sample=h.sample;
     hereLatLng=[h.lat,h.lng]; hereAcc=h.acc; drawHere();
+    // GPS待ちの間にマークを押していたら、ここで取りこぼさず確定（実機のGPS遅延対策）
+    if(homePickState.pending && homePickState.mark){
+      homePickState.pending = false;
+      confirmHomePin();
+      return;
+    }
     meta.textContent = (h.sample ? "サンプル位置（本番はHTTPSで実測）" : "現在地")
       + " "+h.lat.toFixed(5)+", "+h.lng.toFixed(5)
       + (h.acc!=null?"（精度 約"+h.acc+"m）":"") + " ・ マークを1つ選ぶ＝記録";
@@ -824,7 +835,9 @@ function confirmHomePin(){
   if(s.lat==null || !s.mark) return;
   var iso = new Date().toISOString();
   var p = { lat:s.lat, lng:s.lng, acc:s.acc, mark:s.mark, comment:"", created:iso, updated:iso };
-  pins.push(p); savePins(); renderPins(); fitHomeView();
+  pins.push(p); savePins();
+  // 地図（ホームプレビュー/#map）の準備が整い次第、確実に描いて新ピンへ寄せる（実機の初期化遅延対策）
+  drawNewHomePin();
   s._pin = p;
   // 確定後に「メモ（任意）」を出す
   var memo = document.getElementById("homePickMemo");
@@ -1355,6 +1368,25 @@ function fitHomeView(){
       if(homeMap.getZoom() > 18) homeMap.setZoom(18);
     });
   } else if(pts.length===1){ homeMap.setCenter(pts[0]); homeMap.setZoom(17); }
+}
+
+/* ── 新しいピンを“確実に映す”：地図とprojectionの準備を待ってから描く＋寄せる ──
+   実機ではGoogle地図が loading=async で遅れて来る／homeMapが作られた直後は
+   projection が未準備で drawOnePin が静かに失敗し得る。ここで取りこぼさない。 */
+function drawNewHomePin(){
+  whenGmaps(function(){
+    // ホームの小プレビューがまだ無ければ起こす（API到着後なら作れる）
+    if(!homeMap) initHomeMap();
+    // #map側も既に開いていれば即同期（無ければ次に開いた時に描かれる）
+    renderPins();
+    fitHomeView();
+    // projection未準備で1回目が空振りしても、idleで必ずもう一度描いて寄せる
+    if(homeMap){
+      google.maps.event.addListenerOnce(homeMap, "idle", function(){
+        renderPins(); fitHomeView();
+      });
+    }
+  });
 }
 
 // 画面が表示された瞬間に大きさを取り直す（隠れている間は描けない）。API未到着なら待つ。
