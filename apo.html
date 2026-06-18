@@ -456,7 +456,61 @@
   .markform .mini.danger{ border-color:rgba(217,138,91,.5); color:#e6a09a; }
   /* 🧭 ここへ行く（ルート＝スマホの地図アプリで開く）＝控えめな緑 */
   .markform .mini.go{ border-color:rgba(143,174,125,.55); color:var(--leaf); text-decoration:none; }
+  /* 🛰️ Googleの航空写真で見る（高画質確認＝Googleで開く）＝控えめな金 */
+  .markform .mini.sat{ border-color:rgba(203,178,122,.6); color:var(--gold); text-decoration:none; }
   .markform .gonote{ font-size:10px; color:var(--ink-faint); margin-top:5px; opacity:.85; }
+
+  /* ── 🗺️ 地図 / 📋 リスト 切替（#map上部の道具帯に置く小さなトグル） ── */
+  .seg{
+    display:inline-flex; border:1px solid var(--card-edge); border-radius:var(--r-sm);
+    overflow:hidden; background:rgba(255,250,238,.02);
+  }
+  .seg button{
+    background:transparent; border:none; cursor:pointer;
+    color:var(--ink-soft); font-size:12.5px; font-family:"Zen Kurenaido",sans-serif;
+    padding:7px 11px; letter-spacing:.02em;
+  }
+  .seg button + button{ border-left:1px solid var(--card-edge); }
+  .seg button.on{
+    background:linear-gradient(180deg, rgba(217,138,91,.18), rgba(217,138,91,.05));
+    color:var(--vermilion-soft); font-weight:700;
+  }
+  /* 🛰️ 今このへんをGoogleで見る（地図上部）＝控えめな金リンク */
+  .sat-btn{
+    display:inline-flex; align-items:center; gap:5px; text-decoration:none;
+    background:linear-gradient(180deg, rgba(203,178,122,.14), rgba(203,178,122,.04));
+    border:1px solid rgba(203,178,122,.5); border-radius:var(--r-md);
+    color:var(--gold); font-weight:600; font-size:12.5px;
+    font-family:"Zen Kurenaido",sans-serif; padding:8px 11px;
+  }
+  .sat-btn:active{ transform:scale(.96); }
+
+  /* 📋 自分のピンのリスト（新しい順・地図⇄切替の片方） */
+  #map .leaflistfull{ flex:1 1 auto; min-height:0; overflow:auto; padding:10px 11px; display:none; }
+  #map.listmode .leafmapfull{ display:none; }
+  #map.listmode .leaflistfull{ display:block; }
+  .pinrow{
+    display:flex; align-items:flex-start; gap:9px;
+    background:rgba(255,250,238,.02); border:1px solid rgba(58,52,42,.6);
+    border-radius:var(--r-md); padding:9px 11px; margin-bottom:8px;
+  }
+  .pinrow .ic{ font-size:21px; line-height:1.1; flex:0 0 auto;
+    text-shadow:0 0 2px rgba(0,0,0,.5); }
+  .pinrow .body{ flex:1; min-width:0; }
+  .pinrow .lbl{ font-size:12.5px; color:var(--ink); font-weight:600; }
+  .pinrow .cm{ font-size:12px; color:var(--ink-soft); margin-top:2px; word-break:break-word; }
+  .pinrow .cm.empty{ color:var(--ink-faint); font-style:italic; }
+  .pinrow .sub{ font-size:10.5px; color:var(--ink-faint); margin-top:3px; font-feature-settings:"tnum"; }
+  .pinrow .acts{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .pinrow .acts a, .pinrow .acts button{
+    display:inline-flex; align-items:center; gap:4px; cursor:pointer; text-decoration:none;
+    border:1.5px solid var(--card-edge); background:rgba(255,250,238,.03); color:var(--ink-soft);
+    border-radius:8px; padding:6px 9px; font-size:11.5px; font-family:inherit;
+  }
+  .pinrow .acts .sat{ border-color:rgba(203,178,122,.6); color:var(--gold); }
+  .pinrow .acts .go{ border-color:rgba(143,174,125,.55); color:var(--leaf); }
+  .pinrow .acts .edit{ border-color:rgba(217,138,91,.5); color:var(--vermilion-soft); }
+  .listempty{ text-align:center; color:var(--ink-faint); font-size:12.5px; padding:24px 8px; line-height:1.7; }
 
   /* ── ホームから1軒記録：現在地にピン→マークを選ぶチップ（#mapに入らず） ── */
   /* 画面下から立つ小さなシート。型(色/角丸/余白)はそのまま流用 */
@@ -592,17 +646,24 @@
     <span class="ttl">きょうの足あと</span>
   </div>
   <section class="pane card map mapfull" aria-label="今日の足あと地図（全画面・本物の航空写真）">
-    <!-- 上：道具帯（ここにピン＝現在地に仮置き→マークを選ぶ） -->
+    <!-- 上：道具帯（地図⇄リスト切替／ここにピン／🛰️Googleで高画質） -->
     <div class="maptools">
+      <span class="seg" role="group" aria-label="地図とリストの切替">
+        <button id="segMap" class="on" type="button">🗺️ 地図</button>
+        <button id="segList" type="button">📋 リスト</button>
+      </span>
       <button class="map-btn" id="addPinBtn">📍 ここにピン</button>
-      <span class="map-tip" id="addPinTip">今いる家の前で押す→マークを選ぶ＝2タップ。地図を直接タップでも置けます。</span>
+      <a class="sat-btn" id="satHereBtn" target="_blank" rel="noopener" href="#">🛰️ 今このへんをGoogleで見る</a>
+      <span class="map-tip" id="addPinTip">家の前で「ここにピン」→マークを選ぶ＝2タップ。屋根や太陽光パネルの<b>高画質</b>は「🛰️」でGoogleの航空写真が開きます（¥0）。</span>
     </div>
     <!-- 真ん中：本物の航空写真（既定Esri・切替で国土地理院／現在地＋精度円＋自分のピン） -->
     <div class="leafmapfull">
       <div class="leafmap" id="fullMap"></div>
     </div>
+    <!-- 真ん中：自分のピンの一覧（新しい順）＝地図と切り替えて使う -->
+    <div class="leaflistfull" id="pinList"><!-- JSで新しい順に --></div>
     <!-- 下：仮の注記 -->
-    <div class="map-note" id="mapNote">※マークの種類は<b>仮</b>です（あとでオーナーが直します）。位置は開き直しても残ります。</div>
+    <div class="map-note" id="mapNote">※マークの種類は<b>仮</b>です（あとでオーナーが直します）。位置・記録はこのアプリに残ります。高画質・ナビは<b>Google</b>で開きます（データは渡しません）。</div>
   </section>
 </div>
 
@@ -870,6 +931,12 @@ function savePins(){
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 
+// ── Googleで見る/ナビのURL（リンクだけ＝データは渡さない・¥0・カード不要） ──
+// 🛰️ 高画質の航空写真（衛星）：Googleマップの衛星表示でその地点を開く（iPhoneはGoogleマップアプリが衛星で開く）
+function gSatUrl(lat, lng){ return "https://www.google.com/maps/@"+lat+","+lng+",19z/data=!3m1!1e3"; }
+// 🧭 ここへ行く（ナビ）：出発地はGoogle側が現在地を自動。既存のピン編集と同じ式。
+function gDirUrl(lat, lng){ return "https://www.google.com/maps/dir/?api=1&destination="+lat+","+lng; }
+
 // ── 地図タイル（無料・キー不要）。URLはコードに直書きで良い＝APIキーではない ──
 function esriTiles(){ return L.tileLayer(
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -968,10 +1035,73 @@ function drawOnePin(p, lyr, editable){
   if(editable){ m.on("click", function(){ openEditPin(p); }); }
   m.addTo(lyr);
 }
-// すべてのピンを描き直す（両マップ）
+// すべてのピンを描き直す（両マップ＋リスト）
 function renderPins(){
   if(pinLayer){ pinLayer.clearLayers(); pins.forEach(function(p){ drawOnePin(p, pinLayer, true); }); }
   if(homePinLayer){ homePinLayer.clearLayers(); pins.forEach(function(p){ drawOnePin(p, homePinLayer, false); }); }
+  renderPinList();   // リスト表示も同じデータから描き直す（地図と同期）
+}
+
+// ── 📋 自分のピンのリスト（新しい順＝記録時刻が新しいものを上に） ──
+// 行＝マークのアイコン＋色／コメント／時刻／（あれば精度）＋ボタン 🛰️Googleで見る・🧭ここへ行く・✏️編集
+function timeOf(p){ return new Date(p.updated||p.created||0).getTime(); }
+function fmtTime(iso){
+  var t = new Date(iso||Date.now());
+  var y=t.getMonth()+1, d=t.getDate();
+  var hh=("0"+t.getHours()).slice(-2), mm=("0"+t.getMinutes()).slice(-2);
+  return y+"/"+d+" "+hh+":"+mm;
+}
+function renderPinList(){
+  var box = document.getElementById("pinList");
+  if(!box) return;
+  if(!pins.length){
+    box.innerHTML = '<div class="listempty">まだピンがありません。<br>地図で「📍 ここにピン」を押すと、ここに新しい順で並びます。</div>';
+    return;
+  }
+  // 新しい順（記録/更新時刻の降順）。元配列のindexで編集対象を特定。
+  var order = pins.map(function(p,i){ return i; })
+                  .sort(function(a,b){ return timeOf(pins[b]) - timeOf(pins[a]); });
+  box.innerHTML = order.map(function(idx){
+    var p = pins[idx], mk = markOf(p.mark);
+    var cm = (p.comment && p.comment.trim())
+      ? '<div class="cm">'+esc(p.comment)+'</div>'
+      : '<div class="cm empty">メモなし</div>';
+    var sub = fmtTime(p.updated||p.created) + (p.acc!=null? " ・ 精度 約"+p.acc+"m" : "");
+    return '<div class="pinrow">'
+      +   '<span class="ic" style="color:'+mk.color+'">'+mk.icon+'</span>'
+      +   '<div class="body">'
+      +     '<div class="lbl">'+esc(mk.label)+'</div>'
+      +     cm
+      +     '<div class="sub">'+esc(sub)+'</div>'
+      +     '<div class="acts">'
+      +       '<a class="sat" href="'+gSatUrl(p.lat,p.lng)+'" target="_blank" rel="noopener">🛰️ Googleで見る</a>'
+      +       '<a class="go" href="'+gDirUrl(p.lat,p.lng)+'" target="_blank" rel="noopener">🧭 ここへ行く</a>'
+      +       '<button class="edit" type="button" data-edit="'+idx+'">✏️ 編集</button>'
+      +     '</div>'
+      +   '</div>'
+      + '</div>';
+  }).join("");
+  // ✏️編集＝地図側へ戻り、その地点へ寄ってピン編集を開く（記録は今のアプリのまま）
+  box.querySelectorAll("button[data-edit]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var p = pins[parseInt(b.getAttribute("data-edit"),10)];
+      if(!p) return;
+      setMapMode("map");
+      if(fullMap){ fullMap.invalidateSize(); fullMap.setView([p.lat,p.lng], Math.max(fullMap.getZoom(),18)); }
+      openEditPin(p);
+    });
+  });
+}
+
+// ── 🗺️ 地図 / 📋 リスト の切替（同じピンを地図 or 一覧で見る） ──
+function setMapMode(mode){
+  var mapScreen = document.getElementById("map");
+  var isList = (mode === "list");
+  mapScreen.classList.toggle("listmode", isList);
+  document.getElementById("segMap").classList.toggle("on", !isList);
+  document.getElementById("segList").classList.toggle("on", isList);
+  if(isList){ renderPinList(); }
+  else if(fullMap){ setTimeout(function(){ fullMap.invalidateSize(); renderPins(); drawHere(); }, 40); }
 }
 
 // ── マークを選ぶチップ＋メモ（任意）のフォームHTML ──
@@ -988,15 +1118,19 @@ function markFormHtml(opts){
          + (opts.sample?" ・ サンプル位置（本番はHTTPSで実測）":"");
   }
   // 🧭 ここへ行く＝スマホの地図アプリでこのピンへのルート（ナビ）を開く（出発地は地図アプリ側が現在地を自動）
-  var dirUrl = "https://www.google.com/maps/dir/?api=1&destination="
-             + (opts.lat!=null ? (opts.lat+","+opts.lng) : "");
   var goBtn = (opts.lat!=null)
-    ? '<a class="mini go" href="'+dirUrl+'" target="_blank" rel="noopener">🧭 ここへ行く</a>'
+    ? '<a class="mini go" href="'+gDirUrl(opts.lat,opts.lng)+'" target="_blank" rel="noopener">🧭 ここへ行く</a>'
+    : "";
+  // 🛰️ Googleの航空写真で見る＝屋根/太陽光パネルの高画質確認（Googleの衛星表示で開く）
+  var satBtn = (opts.lat!=null)
+    ? '<a class="mini sat" href="'+gSatUrl(opts.lat,opts.lng)+'" target="_blank" rel="noopener">🛰️ Googleの航空写真で見る</a>'
     : "";
   var rows = opts.isNew
     ? '<span class="mini primary" data-act="save">このマークで確定</span>'
+      + satBtn
       +'<span class="mini" data-act="cancel">やめる</span>'
     : '<span class="mini primary" data-act="save">保存</span>'
+      + satBtn
       + goBtn
       +'<span class="mini retake" data-act="retake">📍 ここで位置を取り直す</span>'
       +'<span class="mini danger" data-act="del">削除</span>';
@@ -1006,7 +1140,7 @@ function markFormHtml(opts){
     +   '<div class="chips">'+chips+'</div>'
     +   '<textarea rows="2" placeholder="メモ（任意・打たなくてもOK）">'+esc(opts.comment||"")+'</textarea>'
     +   '<div class="row">'+rows+'</div>'
-    +   (goBtn?'<div class="gonote">ルートはスマホの地図アプリで開きます（¥0）</div>':'')
+    +   ((goBtn||satBtn)?'<div class="gonote">高画質・ナビはGoogleマップで開きます（¥0）</div>':'')
     + '</div>';
 }
 
@@ -1162,6 +1296,7 @@ function fitHomeView(){
 // 画面が表示された瞬間に大きさを取り直す（隠れている間は描けない）
 function onMapShown(){
   initFullMap();
+  setMapMode("map");   // 開いた時は地図側から（リストはトグルで）
   startWatch();   // 現在地“表示だけ”リアルタイム追従（記録はタップ時のみ）
   setTimeout(function(){ if(fullMap){ fullMap.invalidateSize(); renderPins(); drawHere(); } }, 60);
 }
@@ -1173,6 +1308,21 @@ function onHomeShown(){
 
 // 「📍 ここにピン」ボタン（#map内）
 document.getElementById("addPinBtn").addEventListener("click", placeHereByGps);
+
+// 🛰️ 今このへんをGoogleで見る＝地図の中心（無ければ現在地）の衛星表示を開く。
+// 押した瞬間に最新の中心でhrefを差し替え（target=_blankはそのまま遷移）。
+var satHereBtn = document.getElementById("satHereBtn");
+satHereBtn.addEventListener("click", function(){
+  var lat, lng;
+  if(fullMap){ var c = fullMap.getCenter(); lat=c.lat; lng=c.lng; }
+  else if(hereLatLng){ lat=hereLatLng[0]; lng=hereLatLng[1]; }
+  else { lat=SAMPLE_CENTER[0]; lng=SAMPLE_CENTER[1]; }
+  satHereBtn.setAttribute("href", gSatUrl(lat, lng));
+});
+
+// 🗺️ 地図 / 📋 リスト の切替ボタン
+document.getElementById("segMap").addEventListener("click", function(){ setMapMode("map"); });
+document.getElementById("segList").addEventListener("click", function(){ setMapMode("list"); });
 // ホームのシートの覆い＝外タップで閉じる
 document.getElementById("homePickVeil").addEventListener("click", closeHomePick);
 wireHomePickRow();
