@@ -221,15 +221,23 @@
     box-shadow:0 0 8px rgba(143,174,125,.4);
   }
 
-  /* ── 右下：地図（本物の航空写真＝Google Maps hybrid。ホームは小さなプレビュー）──── */
+  /* ── 右下：地図（本物の航空写真＝Google Maps hybrid。ホームも“触れる地図”＝家タップでピン）──── */
   .map{
     position:relative;
     background:#211e1a;   /* タイル読込前の下地（墨） */
   }
   /* 実際の地図が入る器（Google Mapsのキャンバス） */
   .map .gmap{ position:absolute; inset:0; z-index:1; }
-  /* ホームのプレビューはタップで専門画面へ＝地図自体は触らせない（指で操作させない） */
-  #home .map .gmap{ pointer-events:none; }
+  /* ホームの地図も“触れる地図”＝指でパン・拡大OK。家タップ＝その地点にピン */
+  /* ⛶ 大きく＝全画面の地図(#map)を開く小さなボタン（地図の隅・墨地に金） */
+  .map .map-big{
+    position:absolute; right:8px; top:7px; z-index:4;
+    font-family:"Zen Kurenaido",sans-serif; font-size:11px; color:var(--gold);
+    background:rgba(26,24,21,.78); border:1px solid var(--card-edge);
+    border-radius:var(--r-sm); padding:3px 8px; letter-spacing:.04em;
+    cursor:pointer; transition:transform .12s ease;
+  }
+  .map .map-big:active{ transform:scale(.94); }
   /* 帯ラベル「地図」＝左上に小さく（地図の上に浮かす） */
   .map .tag{
     position:absolute; left:8px; top:7px; z-index:3;
@@ -568,13 +576,13 @@
         <div class="steps" id="gStepNow"><!-- JSで今の時間帯1段だけ --></div>
       </section>
 
-      <!-- 右下：地図（本物の航空写真の小さなプレビュー＝自分のピン＋現在地）＝タップで全画面地図へ -->
-      <section class="card map tap" aria-label="今日の足あと地図（タップで大きく見る）"
-               role="button" tabindex="0" data-go="map">
-        <span class="hint" style="color:var(--ink-soft)">›</span>
+      <!-- 右下：地図（本物の航空写真＝触れる地図。家タップでその場所にピン／現在地＋自分のピン） -->
+      <section class="card map" aria-label="今日の足あと地図（指で動かせる・家をタップでピン）">
         <span class="tag">地図</span>
-        <!-- 本物の地図が入る器（ホームは触らせない＝タップで全画面へ） -->
+        <!-- 本物の地図が入る器（ホームのまま指でパン・拡大／家タップでその地点にピン） -->
         <div class="gmap" id="homeMap"></div>
+        <!-- ⛶ 大きく＝全画面の地図(#map・リスト/ナビ)を開く（タップ遷移の代わり） -->
+        <button class="map-big" id="homeMapBig" type="button" aria-label="大きく見る（全画面の地図）">⛶ 大きく</button>
         <div class="legend" id="homeLegend"><!-- JSで仮マークの色見本 --></div>
       </section>
 
@@ -1206,7 +1214,8 @@ function wireChips(el, state){
 }
 
 // ── InfoWindowを1つ開く共通（同時に1つだけ・domreadyで中身を結線） ──
-function openPopup(lat, lng, html, wire){
+// targetMap＝吹き出しを乗せる地図（既定=fullMap。ホームの家タップでは homeMap を渡す）
+function openPopup(lat, lng, html, wire, targetMap){
   if(openInfoWindow){ openInfoWindow.close(); openInfoWindow=null; }
   var iw = new google.maps.InfoWindow({ content:html, maxWidth:300 });
   google.maps.event.addListener(iw, "domready", function(){
@@ -1217,12 +1226,14 @@ function openPopup(lat, lng, html, wire){
   });
   google.maps.event.addListener(iw, "closeclick", function(){ openInfoWindow=null; });
   iw.setPosition({lat:lat, lng:lng});
-  iw.open(fullMap);
+  iw.open(targetMap || fullMap);
   openInfoWindow = iw;
 }
 
 // ── ① 新規ピン：現在地 or タップ地点に仮置き → マークを選ぶ → 確定 ──
-function openNewPin(lat, lng, acc, sample){
+// targetMap＝吹き出しを乗せる地図（既定=fullMap。ホームの家タップでは homeMap）。
+// 確定後の再描画は renderPins() が両マップ＋リストを更新＝保存形式・フローは #map と同一。
+function openNewPin(lat, lng, acc, sample, targetMap){
   var now = new Date();
   var timeLabel = ("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2);
   var state = { mark:"" };
@@ -1237,7 +1248,7 @@ function openNewPin(lat, lng, acc, sample){
       savePins(); renderPins(); iw.close(); openInfoWindow=null;
     });
     el.querySelector('[data-act="cancel"]').addEventListener("click", function(){ iw.close(); openInfoWindow=null; });
-  });
+  }, targetMap);
 }
 
 // 「📍 ここにピン」＝現在地を取って仮置き（GPSの緯度経度・精度・時刻）
@@ -1335,7 +1346,7 @@ function initFullMap(){
   });
 }
 
-// ── ホームの小プレビュー（触らせない・自分のピン＋現在地が乗る） ──
+// ── ホームの“触れる地図”（指でパン・拡大OK／家タップでその地点にピン・自分のピン＋現在地が乗る） ──
 function initHomeMap(){
   if(homeMap || !gmapsReady) return;
   if(!HtmlOverlay) HtmlOverlay = makeHtmlOverlay();
@@ -1344,11 +1355,15 @@ function initHomeMap(){
     zoom:17,
     mapTypeId:"hybrid",
     tilt:0,
-    disableDefaultUI:true,       // コントロール無し＝見るだけ
-    gestureHandling:"none",      // 指で動かせない（タップで全画面へ）
+    disableDefaultUI:true,       // コントロールは出さない（型を保つ）が地図自体は触れる
+    gestureHandling:"greedy",    // 指でパン・ピンチ拡大OK＝“触れる地図”
     keyboardShortcuts:false, clickableIcons:false
   });
   renderPins();
+  // ホームのまま地図の家をタップ＝その地点にピン（#mapと同じ openNewPin。吹き出しは homeMap に乗せる）
+  homeMap.addListener("click", function(e){
+    openNewPin(e.latLng.lat(), e.latLng.lng(), null, false, homeMap);
+  });
   // 現在地が分かればそこを中心に、ピンが有れば全体が入るように
   getHere(function(h){
     hereLatLng=[h.lat,h.lng]; hereAcc=h.acc; drawHere();
@@ -1422,6 +1437,11 @@ document.getElementById("addPinBtn").addEventListener("click", placeHereByGps);
 // 🗺️ 地図 / 📋 リスト の切替ボタン
 document.getElementById("segMap").addEventListener("click", function(){ setMapMode("map"); });
 document.getElementById("segList").addEventListener("click", function(){ setMapMode("list"); });
+// ⛶ 大きく＝全画面の地図(#map・リスト/ナビ)を開く（タップ遷移の代わり・#mapは温存）
+document.getElementById("homeMapBig").addEventListener("click", function(e){
+  e.stopPropagation();   // 地図ゾーンのタップに巻き込まれない
+  goTo("map");
+});
 // ホームのシートの覆い＝外タップで閉じる
 document.getElementById("homePickVeil").addEventListener("click", closeHomePick);
 wireHomePickRow();
