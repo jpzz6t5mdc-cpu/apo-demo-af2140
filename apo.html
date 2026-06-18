@@ -454,6 +454,49 @@
   .markform .mini.primary{ border-color:var(--vermilion); background:rgba(217,138,91,.18); color:var(--vermilion-soft); font-weight:700; }
   .markform .mini.retake{ border-color:rgba(143,174,125,.55); color:var(--leaf); }
   .markform .mini.danger{ border-color:rgba(217,138,91,.5); color:#e6a09a; }
+  /* 🧭 ここへ行く（ルート＝スマホの地図アプリで開く）＝控えめな緑 */
+  .markform .mini.go{ border-color:rgba(143,174,125,.55); color:var(--leaf); text-decoration:none; }
+  .markform .gonote{ font-size:10px; color:var(--ink-faint); margin-top:5px; opacity:.85; }
+
+  /* ── ホームから1軒記録：現在地にピン→マークを選ぶチップ（#mapに入らず） ── */
+  /* 画面下から立つ小さなシート。型(色/角丸/余白)はそのまま流用 */
+  .homepick{
+    position:fixed; left:0; right:0; bottom:0; z-index:1200;
+    max-width:480px; margin:0 auto;
+    background:linear-gradient(180deg, var(--card), var(--paper2));
+    border:1px solid var(--card-edge); border-bottom:none;
+    border-radius:var(--r-lg) var(--r-lg) 0 0;
+    box-shadow:0 -16px 40px -18px rgba(0,0,0,.85);
+    padding:13px 14px calc(13px + env(safe-area-inset-bottom));
+    transform:translateY(110%); transition:transform .26s ease;
+  }
+  .homepick.show{ transform:translateY(0); }
+  .homepick .ttl{ font-family:"Yuji Syuku",serif; font-size:14px; color:var(--gold); margin-bottom:3px; }
+  .homepick .meta{ font-size:11px; color:var(--ink-faint); margin-bottom:9px; }
+  .homepick .chips{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:4px; }
+  .homepick .chip{
+    font-size:13.5px; padding:9px 12px; border-radius:9px; cursor:pointer;
+    border:1.5px solid var(--card-edge); background:rgba(255,250,238,.03); color:var(--ink-soft);
+  }
+  .homepick .chip.on{ border-color:var(--vermilion); background:rgba(217,138,91,.18); color:var(--vermilion-soft); font-weight:700; }
+  .homepick textarea{
+    width:100%; margin-top:9px; background:rgba(255,250,238,.04); color:var(--ink);
+    border:1px solid var(--card-edge); border-radius:9px; padding:8px 10px;
+    font-family:inherit; font-size:13px; resize:vertical;
+  }
+  .homepick .row{ display:flex; gap:8px; margin-top:10px; }
+  .homepick .row .mini{
+    flex:1; text-align:center; padding:10px 8px; border-radius:9px; cursor:pointer;
+    border:1.5px solid var(--card-edge); background:rgba(255,250,238,.03); color:var(--ink-soft);
+    font-size:13.5px; font-family:inherit;
+  }
+  .homepick .row .mini.primary{ border-color:var(--vermilion); background:rgba(217,138,91,.18); color:var(--vermilion-soft); font-weight:700; }
+  /* 半透明の覆い（外をタップで閉じる） */
+  .homepick-veil{
+    position:fixed; inset:0; z-index:1190; background:rgba(0,0,0,.4);
+    opacity:0; visibility:hidden; transition:opacity .26s ease, visibility .26s;
+  }
+  .homepick-veil.show{ opacity:1; visibility:visible; }
 </style>
 </head>
 <body>
@@ -499,12 +542,24 @@
     </div>
   </div>
 
-  <!-- ====== 下：細いバー＝入力プレースホルダ（手描きに無い） ====== -->
+  <!-- ====== 下：入力バー＝ここにピン（記録）＝ホームから2タップで1軒記録 ====== -->
   <div class="inputbar">
-    <div class="btn" id="recBtn"><span>✍️</span><span>1軒記録</span></div>
-    <div class="note">※入力の置き場所は要相談（仮置き）</div>
+    <div class="btn" id="recBtn"><span>📍</span><span>ここにピン（記録）</span></div>
+    <div class="note">押す→現在地にピン→マークを選ぶ＝記録（2タップ）</div>
   </div>
 
+</div>
+
+<!-- ====== ホームから1軒記録：現在地ピン＋マークを選ぶシート（#mapと同じ保存先） ====== -->
+<div class="homepick-veil" id="homePickVeil"></div>
+<div class="homepick" id="homePick" aria-label="マークを選ぶ（ホームから記録）">
+  <div class="ttl">マークを選ぶ</div>
+  <div class="meta" id="homePickMeta">現在地を確認中…</div>
+  <div class="chips" id="homePickChips"><!-- JSで仮マークのチップ --></div>
+  <textarea id="homePickMemo" rows="2" placeholder="メモ（任意・打たなくてもOK）" style="display:none;"></textarea>
+  <div class="row" id="homePickRow">
+    <span class="mini" data-act="cancel">やめる</span>
+  </div>
 </div>
 
 <!-- ====== 🏆 順位の専門画面（フル順位表） ====== -->
@@ -685,10 +740,79 @@ function renderRankFull(d){
   document.getElementById("rankFull").innerHTML = html;
 }
 
-// --- 入力ボタンはまだ仮置き（勝手に確定しない） ---
-function onRec(){
-  alert("ここに「1軒記録」が入る予定です。\n置き場所（この下バー／別画面など）は要相談です。");
+// --- ③ ホームから1軒記録：#mapに入らず現在地にピン→マークを選ぶ（2タップ） ---
+// 保存先・マーク・関数は #map と同じ（apo.pins.v1 / 同じMARKS / savePins / renderPins を流用＝二重実装しない）
+var homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false };
+function openHomePick(){
+  homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false };
+  var sheet = document.getElementById("homePick");
+  var veil  = document.getElementById("homePickVeil");
+  var meta  = document.getElementById("homePickMeta");
+  var memo  = document.getElementById("homePickMemo");
+  // チップ＝#mapと同じ仮マーク一覧
+  document.getElementById("homePickChips").innerHTML = MARKS.map(function(mk){
+    return '<span class="chip" data-mk="'+mk.key+'">'+mk.label+'</span>';
+  }).join("");
+  memo.value = ""; memo.style.display = "none";
+  meta.textContent = "現在地を確認中…";
+  veil.classList.add("show"); sheet.classList.add("show");
+  // チップ選択＝現在地ピンを即確定（マークを1つ選ぶ＝確定）
+  document.getElementById("homePickChips").querySelectorAll(".chip").forEach(function(b){
+    b.addEventListener("click", function(){
+      if(homePickState.lat==null) return;     // 位置確定前は押せない
+      document.getElementById("homePickChips").querySelectorAll(".chip").forEach(function(x){ x.classList.remove("on"); });
+      b.classList.add("on"); homePickState.mark = b.getAttribute("data-mk");
+      confirmHomePin();
+    });
+  });
+  // 現在地を取る（#mapと同じ getHere・記録時のGPS）
+  getHere(function(h){
+    homePickState.lat=h.lat; homePickState.lng=h.lng; homePickState.acc=h.acc; homePickState.sample=h.sample;
+    hereLatLng=[h.lat,h.lng]; hereAcc=h.acc; drawHere();
+    meta.textContent = (h.sample ? "サンプル位置（本番はHTTPSで実測）" : "現在地")
+      + " "+h.lat.toFixed(5)+", "+h.lng.toFixed(5)
+      + (h.acc!=null?"（精度 約"+h.acc+"m）":"") + " ・ マークを1つ選ぶ＝記録";
+  });
 }
+// マークを選んだ＝現在地にピンを確定（その後メモ任意）。#mapと同じ保存（savePins/renderPins）
+function confirmHomePin(){
+  var s = homePickState;
+  if(s.lat==null || !s.mark) return;
+  var iso = new Date().toISOString();
+  var p = { lat:s.lat, lng:s.lng, acc:s.acc, mark:s.mark, comment:"", created:iso, updated:iso };
+  pins.push(p); savePins(); renderPins(); fitHomeView();
+  s._pin = p;
+  // 確定後に「メモ（任意）」を出す
+  var memo = document.getElementById("homePickMemo");
+  memo.style.display = "block"; memo.focus();
+  document.getElementById("homePickMeta").textContent = "記録しました（"+markOf(s.mark).label+"）。メモは任意です。";
+  document.getElementById("homePickRow").innerHTML =
+    '<span class="mini primary" data-act="memoSave">メモを保存して閉じる</span>'
+    +'<span class="mini" data-act="cancel">そのまま閉じる</span>';
+  wireHomePickRow();
+}
+function closeHomePick(){
+  document.getElementById("homePick").classList.remove("show");
+  document.getElementById("homePickVeil").classList.remove("show");
+  // 行を初期状態（やめる）に戻す
+  document.getElementById("homePickRow").innerHTML = '<span class="mini" data-act="cancel">やめる</span>';
+  document.getElementById("homePickMemo").style.display = "none";
+  wireHomePickRow();
+}
+function wireHomePickRow(){
+  document.getElementById("homePickRow").querySelectorAll(".mini").forEach(function(b){
+    b.addEventListener("click", function(){
+      var act = b.getAttribute("data-act");
+      if(act==="memoSave" && homePickState._pin){
+        homePickState._pin.comment = document.getElementById("homePickMemo").value.trim();
+        homePickState._pin.updated = new Date().toISOString();
+        savePins(); renderPins();
+      }
+      closeHomePick();
+    });
+  });
+}
+function onRec(){ openHomePick(); }
 
 /* ── 画面切替（SPA風・#rank/#goal/#map ハッシュ対応） ────────────── */
 var SCREENS = ["home", "rank", "goal", "map"];
@@ -780,6 +904,36 @@ function getHere(cb){
   }, {enableHighAccuracy:true, timeout:8000, maximumAge:5000});
 }
 
+/* ── 現在地の“表示だけ”リアルタイム追従（watchPosition）──────────────
+   ・地図上の自分の点が動くたび追従＝Googleマップの青い点のように。
+   ・⚠️ 記録（ピンの保存）は従来どおりタップ/ピンを置いた時のGPSだけ。
+     watchは“表示”のみ＝常時追跡・常時保存はしない（プライバシー/最小収集）。
+   ・画面が隠れたら止め、戻ったら再開（電池配慮）。使えない/拒否時はサンプルで静止。 */
+var watchId = null;
+function startWatch(){
+  if(watchId!=null) return;                 // 二重起動しない
+  if(!navigator.geolocation) return;        // 使えない＝既存の静止フォールバックのまま
+  if(document.visibilityState === "hidden") return;
+  watchId = navigator.geolocation.watchPosition(function(pos){
+    usingSample = false;
+    hereLatLng = [pos.coords.latitude, pos.coords.longitude];
+    hereAcc = Math.round(pos.coords.accuracy||30);
+    drawHere();                             // 表示だけ更新（保存はしない）
+  }, function(){
+    // 拒否/失敗＝watchを畳む（既存のサンプル静止表示のまま＝騒がない）
+    stopWatch();
+  }, {enableHighAccuracy:true, maximumAge:3000, timeout:12000});
+}
+function stopWatch(){
+  if(watchId!=null && navigator.geolocation){ navigator.geolocation.clearWatch(watchId); }
+  watchId = null;
+}
+// 画面が隠れたら止め、戻ったら再開（電池配慮）
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState === "hidden") stopWatch();
+  else startWatch();
+});
+
 // ── 地図インスタンス（ホーム小プレビュー／全画面）と各レイヤ ──
 var fullMap=null, homeMap=null;
 var pinLayer=null, hereLayer=null;          // 全画面用
@@ -833,10 +987,17 @@ function markFormHtml(opts){
          + (opts.time?" ・ "+opts.time:"")
          + (opts.sample?" ・ サンプル位置（本番はHTTPSで実測）":"");
   }
+  // 🧭 ここへ行く＝スマホの地図アプリでこのピンへのルート（ナビ）を開く（出発地は地図アプリ側が現在地を自動）
+  var dirUrl = "https://www.google.com/maps/dir/?api=1&destination="
+             + (opts.lat!=null ? (opts.lat+","+opts.lng) : "");
+  var goBtn = (opts.lat!=null)
+    ? '<a class="mini go" href="'+dirUrl+'" target="_blank" rel="noopener">🧭 ここへ行く</a>'
+    : "";
   var rows = opts.isNew
     ? '<span class="mini primary" data-act="save">このマークで確定</span>'
       +'<span class="mini" data-act="cancel">やめる</span>'
     : '<span class="mini primary" data-act="save">保存</span>'
+      + goBtn
       +'<span class="mini retake" data-act="retake">📍 ここで位置を取り直す</span>'
       +'<span class="mini danger" data-act="del">削除</span>';
   return '<div class="markform">'
@@ -845,6 +1006,7 @@ function markFormHtml(opts){
     +   '<div class="chips">'+chips+'</div>'
     +   '<textarea rows="2" placeholder="メモ（任意・打たなくてもOK）">'+esc(opts.comment||"")+'</textarea>'
     +   '<div class="row">'+rows+'</div>'
+    +   (goBtn?'<div class="gonote">ルートはスマホの地図アプリで開きます（¥0）</div>':'')
     + '</div>';
 }
 
@@ -1000,15 +1162,20 @@ function fitHomeView(){
 // 画面が表示された瞬間に大きさを取り直す（隠れている間は描けない）
 function onMapShown(){
   initFullMap();
+  startWatch();   // 現在地“表示だけ”リアルタイム追従（記録はタップ時のみ）
   setTimeout(function(){ if(fullMap){ fullMap.invalidateSize(); renderPins(); drawHere(); } }, 60);
 }
 function onHomeShown(){
   initHomeMap();
+  startWatch();   // ホームのプレビューでも自分の点が動く（表示のみ）
   setTimeout(function(){ if(homeMap){ homeMap.invalidateSize(); renderPins(); drawHere(); fitHomeView(); } }, 60);
 }
 
-// 「📍 ここにピン」ボタン
+// 「📍 ここにピン」ボタン（#map内）
 document.getElementById("addPinBtn").addEventListener("click", placeHereByGps);
+// ホームのシートの覆い＝外タップで閉じる
+document.getElementById("homePickVeil").addEventListener("click", closeHomePick);
+wireHomePickRow();
 
 // 描画
 loadPins();
