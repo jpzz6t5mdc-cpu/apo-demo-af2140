@@ -1,59 +1,273 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#14161c">
-<title>アポインター 試作メニュー</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#1a1815" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="LOG POSE" />
+<meta name="mobile-web-app-capable" content="yes" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<link rel="icon" type="image/png" href="icon-192.png" />
+<link rel="manifest" href="manifest.json" />
+<title>LOG POSE</title>
+
 <style>
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{background:#14161c;color:#e8eaf2;font-family:"Hiragino Sans","Yu Gothic",sans-serif;line-height:1.7;padding:26px 18px 60px;max-width:560px;margin:0 auto;}
-  h1{font-size:21px;margin-bottom:4px;}
-  .lead{color:#9aa3c0;font-size:13.5px;margin-bottom:8px;}
-  .note{color:#ffc857;font-size:12px;background:rgba(255,200,87,.08);border:1px solid rgba(255,200,87,.3);border-radius:10px;padding:9px 12px;margin-bottom:20px;}
-  .sec{font-size:12px;color:#6b7390;margin:22px 4px 10px;letter-spacing:.04em;}
-  a.card{display:block;text-decoration:none;color:#e8eaf2;background:#1e2230;border:1px solid #343b55;border-radius:16px;padding:16px 18px;margin-bottom:14px;transition:border-color .15s;}
-  a.card:active{border-color:#5b8cff;background:#252a3d;}
-  a.hero{background:linear-gradient(135deg,#2a2118,#1e2230);border-color:#c9883c;}
-  .ttl{font-size:16.5px;font-weight:700;margin-bottom:3px;}
-  .ttl .emoji{margin-right:7px;}
-  .desc{font-size:13px;color:#9aa3c0;}
-  .tag{display:inline-block;font-size:11px;border-radius:99px;padding:2px 9px;margin-top:8px;}
-  .t-main{background:rgba(201,136,60,.16);border:1px solid #c9883c;color:#e7b06b;}
-  .t-admin{background:rgba(61,220,151,.12);border:1px solid #3ddc97;color:#3ddc97;}
-  a.mini{display:block;text-decoration:none;color:#9aa3c0;background:#191c27;border:1px solid #2a3047;border-radius:12px;padding:10px 14px;margin-bottom:9px;font-size:13px;}
-  a.mini:active{border-color:#5b8cff;}
-  .foot{font-size:11.5px;color:#6b7390;margin-top:18px;border-top:1px solid #343b55;padding-top:12px;}
+  /* ============================================================
+     入口（ランチャー）は1つ。開いたら前回の画面に直行。
+     切り替えは左上の ☰ だけ。タップ数を増やさないための器。
+     色は本人画面の「墨＋朱＋金」を踏襲（温かいダーク）。
+     ============================================================ */
+  :root{
+    --paper:#1a1815;        /* 背景：夜に向かう墨 */
+    --paper2:#211e1a;
+    --card:#252119;         /* 和紙カード */
+    --card-edge:#3a342a;    /* 縁・仕切り線 */
+    --ink:#f0e9da;          /* 主役の文字 */
+    --ink-soft:#b8ad97;     /* 副文字 */
+    --ink-faint:#857a64;    /* 注記 */
+    --vermilion:#d98a5b;    /* 朱・夕陽（行動の差し色） */
+    --vermilion-soft:#e3a378;
+    --gold:#cbb27a;         /* ほのかな金（見出し） */
+    --leaf:#8fae7d;         /* 達成・控えめ */
+    --r-lg:18px; --r-md:13px; --r-sm:9px;
+    --gap:10px; --pad:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%;}
+  html,body{height:100%; overflow:hidden;}
+  body{
+    background:radial-gradient(120% 70% at 50% -10%, #2a241c 0%, var(--paper) 55%, var(--paper2) 100%);
+    color:var(--ink);
+    font-family:"Zen Kurenaido","Hiragino Sans","Yu Gothic",sans-serif;
+    line-height:1.55;
+  }
+
+  /* ── 役職画面を1枚で映す窓 ── */
+  #stage{position:fixed; inset:0; width:100%; height:100%; border:0; background:var(--paper); display:none;}
+  #stage.show{display:block;}
+
+  /* ── 左上の ☰（切替時だけ押す）── */
+  #hamb{
+    position:fixed; z-index:30;
+    top:calc(env(safe-area-inset-top) + 8px);
+    left:calc(env(safe-area-inset-left) + 8px);
+    width:42px; height:42px; border-radius:var(--r-md);
+    border:1px solid var(--card-edge);
+    background:rgba(37,33,25,.82); color:var(--ink);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    font-size:20px; line-height:1; cursor:pointer; display:none;
+    box-shadow:0 2px 10px rgba(0,0,0,.35);
+  }
+  #hamb.show{display:block;}
+  #hamb:active{background:rgba(217,138,91,.25); border-color:var(--vermilion);}
+
+  /* ── メニュー（オーバーレイ）── */
+  #overlay{
+    position:fixed; inset:0; z-index:40; display:none;
+    background:rgba(14,12,10,.78); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+    padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);
+  }
+  #overlay.show{display:block;}
+  .sheet{
+    max-width:480px; margin:0 auto; padding-top:18px;
+    display:flex; flex-direction:column; height:100%;
+  }
+  .sheet h1{font-family:"Yuji Syuku","Hiragino Mincho ProN",serif;
+    font-size:19px; color:var(--gold); letter-spacing:.04em; margin:6px 4px 2px;}
+  .sheet .lead{color:var(--ink-faint); font-size:12px; margin:0 4px 14px;}
+  .menu{display:flex; flex-direction:column; gap:var(--gap); overflow-y:auto;}
+
+  .item{
+    display:flex; align-items:center; gap:13px;
+    background:var(--card); border:1px solid var(--card-edge);
+    border-radius:var(--r-lg); padding:15px var(--pad); cursor:pointer;
+    text-align:left; color:var(--ink); width:100%;
+    transition:border-color .15s, transform .05s;
+  }
+  .item:active{transform:scale(.99); border-color:var(--vermilion);}
+  .item .ico{font-size:26px; width:36px; text-align:center; flex:0 0 auto;}
+  .item .body{flex:1 1 auto; min-width:0;}
+  .item .name{font-size:16px; color:var(--ink); line-height:1.3;}
+  .item .hint{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+  .item .last{font-size:11px; color:var(--vermilion-soft); margin-top:3px;}
+  .item.recent{border-color:rgba(217,138,91,.5);}
+  .item.soon{opacity:.62;}
+  .item.soon .ico{filter:grayscale(.4);}
+
+  .closebar{margin:14px 4px 6px; text-align:center;}
+  .closebar button{
+    background:transparent; border:1px solid var(--card-edge); color:var(--ink-soft);
+    border-radius:99px; padding:9px 22px; font-size:13px; cursor:pointer;
+    font-family:inherit;
+  }
+  .closebar button:active{border-color:var(--vermilion); color:var(--ink);}
+
+  /* ── 「準備中」の小さな知らせ ── */
+  #toast{
+    position:fixed; z-index:60; left:50%; bottom:calc(env(safe-area-inset-bottom) + 28px);
+    transform:translateX(-50%) translateY(12px);
+    background:var(--card); border:1px solid var(--vermilion);
+    color:var(--ink); font-size:14px; padding:11px 20px; border-radius:99px;
+    box-shadow:0 4px 16px rgba(0,0,0,.45);
+    opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; white-space:nowrap;
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
-  <h1>📲 アポインター 試作</h1>
-  <p class="lead">蓄電池訪販・自動化①。スマホで触って確かめる用です。</p>
-  <p class="note">⚠️ これは試作（架空データ）です。実顧客のデータは入っていません。</p>
 
-  <a class="card hero" href="field.html">
-    <div class="ttl"><span class="emoji">📱</span>アポインター画面（スコア＋入力 一体）</div>
-    <div class="desc">上＝スコアボード／下＝リッチメニュー風ボタン。1軒1タップで記録→スコア即増。記録は保存され、初回に同意画面。📤「今日の記録を送る」でLINE共有＝配布版。</div>
-    <span class="tag t-main">これが本命・GPSもここで試せます</span>
-  </a>
+  <!-- 役職画面はこの1枚の窓に映す（中身は同じフォルダの既存ファイル） -->
+  <iframe id="stage" title="役職画面"></iframe>
 
-  <a class="card" href="admin.html">
-    <div class="ttl"><span class="emoji">🗺️</span>管理マップ（無料版）</div>
-    <div class="desc">航空写真＋足あと＋ズル見抜き＋ピン横コメント。📌手動ピン（My Maps風）と📥現場の記録の取り込み（LINEのコード貼付）も可。¥0。</div>
-    <span class="tag t-admin">本人には見せない・管理者用</span>
-  </a>
+  <!-- 左上の切替ボタン（画面を見ている間だけ出る） -->
+  <button id="hamb" aria-label="画面を切り替える">☰</button>
 
-  <a class="card" href="admin-google.html">
-    <div class="ttl"><span class="emoji">💳</span>管理マップ（Google課金版モック）</div>
-    <div class="desc">払ったらこうなる完成イメージ。ピン→埋め込みストビュー＋住所検索。無料との比較つき。</div>
-    <span class="tag t-admin">管理者用・課金検討の判断材料</span>
-  </a>
+  <!-- メニュー（切替の時だけ開く） -->
+  <div id="overlay">
+    <div class="sheet">
+      <h1>どの画面を開く？</h1>
+      <div class="lead">いつもの画面はそのまま開きます。切り替えたい時だけここから。</div>
+      <div class="menu" id="menu"><!-- JSで描く --></div>
+      <div class="closebar"><button id="closeBtn">閉じる</button></div>
+    </div>
+  </div>
 
-  <div class="sec">― 参考：統合前の旧バージョン ―</div>
-  <a class="mini" href="input.html">📍 旧・入力だけの画面</a>
-  <a class="mini" href="mirror.html">🧭 旧・本人スコアだけの画面（一筆）</a>
+  <div id="toast"></div>
 
-  <div class="foot">📖 設計の正本：~/AIカンパニー/AI-Company/プロジェクト/アポインター試作/　／　この入口は試作確認用・いつでも消せます</div>
+<script>
+/* ============================================================
+   束ねる画面の定義（同じフォルダの相対パス＝file:// でも Pages でも動く）
+   ============================================================ */
+var SCREENS = {
+  apo: {
+    icon:"📱", name:"アポインター（自分の画面）",
+    hint:"きょうの自分・記録",
+    src:"apo.html"
+  },
+  map: {
+    icon:"🗺️", name:"管理マップ",
+    hint:"みんなの足あと（管理者）",
+    src:"admin.html"
+  },
+  closer: {
+    icon:"💤", name:"クローザー画面",
+    hint:"準備中",
+    soon:true
+  }
+};
+
+var LS_LAST = "launcher.last";       // 最後に開いた画面のキー
+var LS_HIST = "launcher.history";    // 最近使った順（配列）
+
+var stage   = document.getElementById("stage");
+var hamb    = document.getElementById("hamb");
+var overlay = document.getElementById("overlay");
+var menuEl  = document.getElementById("menu");
+var toastEl = document.getElementById("toast");
+var toastTimer = null;
+
+/* ── 履歴の読み書き ── */
+function getHistory(){
+  try{ var a = JSON.parse(localStorage.getItem(LS_HIST) || "[]");
+       return Array.isArray(a) ? a : []; }
+  catch(e){ return []; }
+}
+function pushHistory(key){
+  var a = getHistory().filter(function(k){ return k !== key; });
+  a.unshift(key);                       // 最近を先頭に
+  a = a.slice(0, 8);
+  try{ localStorage.setItem(LS_HIST, JSON.stringify(a)); }catch(e){}
+}
+
+/* ── 画面を窓に映す（＝iframe差し替え＋記録）── */
+function openScreen(key){
+  var s = SCREENS[key];
+  if(!s) return;
+  if(s.soon){ showToast("準備中です"); return; }   // クローザーはまだ
+  if(stage.getAttribute("data-key") !== key){
+    stage.src = s.src;
+    stage.setAttribute("data-key", key);
+  }
+  stage.classList.add("show");
+  hamb.classList.add("show");
+  closeMenu();
+  try{ localStorage.setItem(LS_LAST, key); }catch(e){}
+  pushHistory(key);
+}
+
+/* ── メニュー（最近使った順に並べる）── */
+function buildMenu(){
+  menuEl.innerHTML = "";
+  var hist = getHistory();
+  var keys = Object.keys(SCREENS);
+  // 最近使った順 → 未使用は元の順で後ろに
+  keys.sort(function(a,b){
+    var ia = hist.indexOf(a), ib = hist.indexOf(b);
+    if(ia === -1 && ib === -1) return 0;
+    if(ia === -1) return 1;
+    if(ib === -1) return -1;
+    return ia - ib;
+  });
+  keys.forEach(function(key){
+    var s = SCREENS[key];
+    var btn = document.createElement("button");
+    btn.className = "item" + (s.soon ? " soon" : "") +
+                    (hist.indexOf(key) === 0 && !s.soon ? " recent" : "");
+    var last = (hist.indexOf(key) === 0 && !s.soon) ? '<div class="last">前回ひらいた画面</div>' : "";
+    btn.innerHTML =
+      '<div class="ico">'+s.icon+'</div>'+
+      '<div class="body"><div class="name">'+s.name+'</div>'+
+      '<div class="hint">'+s.hint+'</div>'+last+'</div>';
+    btn.addEventListener("click", function(){ openScreen(key); });
+    menuEl.appendChild(btn);
+  });
+}
+function openMenu(){ buildMenu(); overlay.classList.add("show"); }
+function closeMenu(){ overlay.classList.remove("show"); }
+
+/* ── 準備中などの小さな知らせ ── */
+function showToast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 1800);
+}
+
+/* ── ボタンの配線 ── */
+hamb.addEventListener("click", openMenu);
+document.getElementById("closeBtn").addEventListener("click", function(){
+  // どの画面も開いていない初回はメニューを残す（行き先が無いので）
+  if(stage.classList.contains("show")) closeMenu();
+});
+
+/* ============================================================
+   起動：①テスト用ディープリンク（#apo/#map/#menu）を最優先
+         ②なければ前回の画面に直行（localStorage）
+         ③それも無ければ（初回）メニューを表示
+   ============================================================ */
+function boot(){
+  var h = (location.hash || "").replace("#","");
+  if(h === "menu"){ openMenu(); return; }
+  if(SCREENS[h]){ openScreen(h); return; }
+
+  var last = null;
+  try{ last = localStorage.getItem(LS_LAST); }catch(e){}
+  if(last && SCREENS[last] && !SCREENS[last].soon){
+    openScreen(last);            // 前回の画面へ直行（メニューを通らない）
+  }else{
+    openMenu();                  // 初回はメニュー
+  }
+}
+
+// ハッシュだけ後から変えた検証にも追従
+window.addEventListener("hashchange", function(){
+  var h = (location.hash || "").replace("#","");
+  if(h === "menu"){ openMenu(); }
+  else if(SCREENS[h]){ openScreen(h); }
+});
+
+boot();
+</script>
 </body>
 </html>

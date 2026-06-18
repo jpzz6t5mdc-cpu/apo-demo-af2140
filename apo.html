@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<!-- PWAホーム追加に馴染む（夕暮れの墨色） -->
+<meta name="theme-color" content="#1a1815" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>きょうの自分 ― ハヤテ</title>
+
+<!-- 手書き風フォント（Google Fonts CDN 1本のみ・読めなくても fallback で成立） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Zen+Kurenaido&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     ★デザインの型＝ここを揃える（20画面で統一する見本）
+     色も寸法もすべて CSS変数で定義。他画面はこの :root をコピーすれば
+     同じ温度・同じ余白・同じ角丸で作れる＝「正直な鏡」の一貫性。
+     ============================================================ */
+  :root{
+    /* ── 色：夕暮れの和紙＝墨と土の色（「一筆」の世界観を継承）── */
+    --paper:#1a1815;        /* 背景：夜に向かう墨 */
+    --paper2:#211e1a;
+    --card:#252119;         /* 和紙カード */
+    --card-edge:#3a342a;    /* カードの縁・仕切り線 */
+    --ink:#f0e9da;          /* 墨の白文字（主役の文字） */
+    --ink-soft:#b8ad97;     /* 薄墨（副文字） */
+    --ink-faint:#857a64;    /* かすれ（注記・ラベル） */
+    --vermilion:#d98a5b;    /* 朱・夕陽（行動＝主役の差し色） */
+    --vermilion-soft:#e3a378;
+    --gold:#cbb27a;         /* ほのかな金（称号・見出し） */
+    --leaf:#8fae7d;         /* 草の緑（達成・控えめ） */
+
+    /* ── 寸法：角丸・余白・文字（部品の基準）── */
+    --r-lg:18px;            /* 大カードの角丸 */
+    --r-md:13px;           /* 中カードの角丸 */
+    --r-sm:9px;            /* バッジ・小物の角丸 */
+    --gap:10px;            /* ゾーン間の余白 */
+    --pad:14px;           /* カード内の余白 */
+    --fs-title:15px;      /* 見出し */
+    --fs-body:13.5px;     /* 本文 */
+    --fs-small:11.5px;    /* 注記・ラベル */
+    --fs-num:32px;        /* 主役の数字 */
+    --bar-h:9px;          /* 進捗バーの高さ */
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%;}
+  html,body{height:100%; overflow:hidden;}
+  body{
+    background:
+      radial-gradient(120% 70% at 50% -10%, #2a241c 0%, var(--paper) 55%, var(--paper2) 100%);
+    color:var(--ink);
+    font-family:"Zen Kurenaido","Hiragino Sans","Yu Gothic",sans-serif;
+    line-height:1.55;
+  }
+
+  /* ============================================================
+     画面全体＝スマホ縦1枚。手描きの3ゾーンを CSS Grid で再現。
+       ┌──────┬──────────────┐
+       │      │  右上：目標 (1/3)   │   左列：幅18〜20%・全高（ランキング）
+       │ ラン │──────────────│   右列：上1/3=目標／下2/3=地図
+       │ キン │                  │
+       │ グ   │  右下：地図 (2/3)   │
+       └──────┴──────────────┘
+     下に細いバー＝入力プレースホルダ（手描きに無い＝置き場所は要相談）
+     safe-area対応（上ノッチ／下ホームバーを避ける）
+     ============================================================ */
+  .app{
+    height:100dvh; height:100svh;        /* 動的ビューポート優先 */
+    max-width:480px; margin:0 auto;
+    display:flex; flex-direction:column;
+    padding:env(safe-area-inset-top) 8px 0 8px;
+  }
+  @supports not (height:100dvh){
+    .app{ height:100vh; }                /* 古い端末フォールバック */
+  }
+
+  /* 上：3ゾーンの本体（残り全高を占める） */
+  .stage{
+    flex:1 1 auto;
+    display:grid;
+    /* ★左帯＝約19%（手描きの18〜20%）／右＝残り */
+    grid-template-columns:19% 1fr;
+    grid-template-rows:1fr;
+    gap:var(--gap);
+    min-height:0;            /* 子のはみ出し防止 */
+    padding-bottom:var(--gap);
+  }
+
+  /* 右列を上1/3・下2/3に分ける入れ物 */
+  .right{
+    display:grid;
+    /* ★右上 目標＝1／右下 地図＝2（＝下が最大） */
+    grid-template-rows:1fr 2fr;
+    gap:var(--gap);
+    min-height:0;
+  }
+
+  /* ── 共通カード（部品）──────────────────── */
+  .card{
+    background:
+      linear-gradient(180deg, rgba(255,250,238,.04), rgba(0,0,0,.06)),
+      var(--card);
+    border:1px solid var(--card-edge);
+    border-radius:var(--r-lg);
+    box-shadow:0 14px 34px -22px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,245,225,.04);
+    overflow:hidden;
+  }
+
+  /* ── 左：縦帯（今月のアポ件数の順位）──────────────── */
+  .rank{
+    display:flex; flex-direction:column;
+    padding:10px 6px 10px 6px;
+    position:relative;
+  }
+  /* 小さな見出し（"ランキング"の語は出さない＝アイコン＋「今月のアポ」） */
+  .rank .cap{
+    text-align:center;
+    font-family:"Yuji Syuku",serif;
+    font-size:11px; letter-spacing:.06em;
+    color:var(--gold);
+    margin-bottom:8px;
+    opacity:.92;
+    line-height:1.35;
+  }
+  .rank .cap .ic{ font-size:13px; display:block; margin-bottom:1px; }
+  /* 区切りの細線 */
+  .rank .hr{
+    height:1px; margin:2px 2px 8px;
+    background:linear-gradient(90deg,transparent,var(--card-edge),transparent);
+  }
+  /* 順位の行（小さく数人ぶん＝今月のアポ件数） */
+  .rank ol{ list-style:none; display:flex; flex-direction:column; gap:5px; }
+  .rank li{
+    display:flex; align-items:center; gap:4px;
+    font-size:11px; color:var(--ink-soft);
+    background:rgba(255,250,238,.02);
+    border:1px solid rgba(58,52,42,.6);
+    border-radius:var(--r-sm);
+    padding:4px 5px;
+  }
+  .rank li .pos{
+    font-feature-settings:"tnum";
+    color:var(--ink-faint); min-width:13px; text-align:center; font-size:10.5px;
+  }
+  .rank li .who{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rank li .cnt{ color:var(--ink-faint); font-size:10px; font-feature-settings:"tnum"; }
+  /* 自分の行＝そっと朱で印（責めない・主役は本人） */
+  .rank li.me{
+    background:linear-gradient(180deg, rgba(217,138,91,.14), rgba(217,138,91,.04));
+    border-color:rgba(217,138,91,.45);
+    color:var(--vermilion-soft);
+  }
+  .rank li.me .pos,.rank li.me .cnt{ color:var(--vermilion-soft); }
+
+  /* ── 右上：目標（〜13時／〜17時／〜19時の3段・話した数）──────── */
+  .goal{
+    padding:var(--pad);
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  .goal .h{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:8px;
+  }
+  .goal .h .t{
+    font-family:"Yuji Syuku",serif; font-size:var(--fs-title);
+    color:var(--gold); letter-spacing:.06em;
+  }
+  .goal .h .sub{ font-size:var(--fs-small); color:var(--ink-faint); }
+  /* 3段の時間チェックポイント */
+  .goal .steps{ display:flex; flex-direction:column; gap:6px; }
+  .goal .step{
+    display:flex; align-items:center; gap:8px;
+    padding:5px 7px;
+    border:1px solid rgba(58,52,42,.6);
+    border-radius:var(--r-sm);
+    background:rgba(255,250,238,.02);
+  }
+  .goal .step .when{
+    flex:0 0 auto; width:46px;
+    font-size:var(--fs-small); color:var(--ink-faint);
+    letter-spacing:.02em;
+  }
+  .goal .step .mid{ flex:1; min-width:0; }
+  .goal .step .num{
+    font-feature-settings:"tnum"; font-size:11.5px; color:var(--ink-soft);
+    margin-bottom:3px;
+  }
+  .goal .step .num b{ color:var(--ink-soft); font-weight:400; }
+  /* 進捗バー（部品）＝朱で満ちる */
+  .bar{
+    height:var(--bar-h); border-radius:999px;
+    background:rgba(255,250,238,.06);
+    border:1px solid var(--card-edge);
+    overflow:hidden;
+  }
+  .bar > i{
+    display:block; height:100%; border-radius:999px;
+    background:linear-gradient(90deg, var(--vermilion), var(--vermilion-soft));
+    box-shadow:0 0 8px rgba(217,138,91,.4);
+    transition:width .6s ease;
+  }
+  /* 今の時刻に当たる段＝そっと朱で強調（責めない） */
+  .goal .step.live{
+    background:linear-gradient(180deg, rgba(217,138,91,.13), rgba(217,138,91,.03));
+    border-color:rgba(217,138,91,.45);
+  }
+  .goal .step.live .when{ color:var(--vermilion-soft); }
+  .goal .step.live .num{ color:var(--ink); font-size:12.5px; }
+  .goal .step.live .num b{ color:var(--vermilion-soft); font-weight:600; }
+  /* 達成した段＝静かに金/緑で祝う */
+  .goal .step.done .when{ color:var(--leaf); }
+  .goal .step.done .num b{ color:var(--leaf); }
+  .goal .step.done .bar > i{
+    background:linear-gradient(90deg, var(--leaf), var(--gold));
+    box-shadow:0 0 8px rgba(143,174,125,.4);
+  }
+
+  /* ── 右下：地図（航空写真っぽい背景＋足あとピン）──── */
+  .map{
+    position:relative;
+    /* それっぽい航空写真背景＝実ライブラリ不要・¥0。区画と緑地の模様 */
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 1px, transparent 1px 46px),
+      repeating-linear-gradient(0deg,  rgba(0,0,0,.18) 0 1px, transparent 1px 52px),
+      radial-gradient(circle at 22% 30%, rgba(110,120,80,.45), transparent 18%),
+      radial-gradient(circle at 70% 65%, rgba(95,110,75,.4), transparent 16%),
+      radial-gradient(circle at 85% 22%, rgba(120,110,85,.35), transparent 14%),
+      linear-gradient(135deg, #3a3a30, #2b2c26 60%, #313229);
+  }
+  /* 帯ラベル「地図」＝左上に小さく */
+  .map .tag{
+    position:absolute; left:8px; top:7px; z-index:2;
+    font-family:"Yuji Syuku",serif; font-size:12px; color:var(--gold);
+    background:rgba(26,24,21,.62); border:1px solid var(--card-edge);
+    border-radius:var(--r-sm); padding:2px 8px; letter-spacing:.1em;
+  }
+  /* 斜めの道（雰囲気） */
+  .map .road{
+    position:absolute; height:8px; background:rgba(210,200,180,.16);
+    border-radius:4px; z-index:1;
+  }
+  .map .road.r1{ left:-6%; top:38%; width:120%; transform:rotate(-9deg); }
+  .map .road.r2{ left:55%; top:-10%; width:8px; height:130%; }
+  /* 今日の足あとピン（数点・サンプル） */
+  .pin{
+    position:absolute; z-index:3;
+    width:13px; height:13px; border-radius:50% 50% 50% 0;
+    transform:rotate(-45deg);
+    border:1.5px solid rgba(26,24,21,.65);
+    box-shadow:0 2px 5px rgba(0,0,0,.5);
+  }
+  .pin.visit{ background:var(--vermilion); }       /* 訪問した点 */
+  .pin.talk{ background:var(--gold); }              /* 話せた点 */
+  .pin.now{                                         /* 今いる所＝脈打つ */
+    background:var(--leaf);
+    animation:pulse 1.8s ease-out infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(143,174,125,.55); }
+    70%{ box-shadow:0 0 0 11px rgba(143,174,125,0); }
+    100%{ box-shadow:0 0 0 0 rgba(143,174,125,0); }
+  }
+  /* 凡例（隅に小さく） */
+  .map .legend{
+    position:absolute; right:8px; bottom:8px; z-index:3;
+    display:flex; gap:8px; font-size:10px; color:var(--ink-soft);
+    background:rgba(26,24,21,.62); border:1px solid var(--card-edge);
+    border-radius:var(--r-sm); padding:4px 7px;
+  }
+  .map .legend .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:3px; vertical-align:middle; }
+  .map .legend .d-v{ background:var(--vermilion); }
+  .map .legend .d-t{ background:var(--gold); }
+
+  /* ── 下：細いバー＝入力プレースホルダ（手描きに無い）──── */
+  .inputbar{
+    flex:0 0 auto;
+    padding:0 2px calc(8px + env(safe-area-inset-bottom)) 2px;
+  }
+  .inputbar .btn{
+    width:100%;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:linear-gradient(180deg, rgba(217,138,91,.14), rgba(217,138,91,.05));
+    border:1px dashed rgba(217,138,91,.5);   /* 破線＝まだ仮置き */
+    border-radius:var(--r-md);
+    color:var(--vermilion-soft);
+    font-size:15px; font-family:"Zen Kurenaido",sans-serif;
+    padding:13px 14px;
+    cursor:pointer;
+  }
+  .inputbar .note{
+    text-align:center; font-size:10.5px; color:var(--ink-faint);
+    margin-top:5px; opacity:.8; letter-spacing:.02em;
+  }
+
+  /* ============================================================
+     画面切替（SPA風）＝同一HTML内でホーム⇄専門画面を出し分け。
+       ・ホームの3ゾーンはタップで専門画面へ（#rank/#goal/#map）
+       ・専門画面は全画面＋◀戻る。型(色/角丸/余白/文字)は全画面共通
+     ============================================================ */
+  /* 各画面＝重ねて配置し、表示中だけ見せる（フェード/スライド） */
+  .screen{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    padding:env(safe-area-inset-top) 8px calc(8px + env(safe-area-inset-bottom)) 8px;
+    max-width:480px; margin:0 auto;
+    opacity:0; visibility:hidden;
+    transform:translateX(14px);
+    transition:opacity .28s ease, transform .28s ease, visibility .28s;
+    pointer-events:none;
+  }
+  .screen.show{
+    opacity:1; visibility:visible; transform:translateX(0);
+    pointer-events:auto;
+  }
+  /* ホームは元のflex流し（高さ計算は .app と同じ） */
+  #home{ padding-bottom:0; }
+
+  /* ホームの3ゾーン＝「押せる」軽い手応え（タップで少し沈む） */
+  .tap{ cursor:pointer; transition:transform .12s ease, box-shadow .12s ease; }
+  .tap:active{ transform:scale(.985); box-shadow:0 6px 18px -14px rgba(0,0,0,.8); }
+  /* 押せる印＝隅にそっと指マーク（型を壊さない控えめさ） */
+  .tap .hint{
+    position:absolute; right:7px; top:6px; z-index:4;
+    font-size:11px; color:var(--ink-faint); opacity:.6;
+    pointer-events:none;
+  }
+  .rank.tap .hint{ position:absolute; }
+
+  /* ── 専門画面 共通：◀戻る ＋ 見出し ── */
+  .topbar{
+    flex:0 0 auto;
+    display:flex; align-items:center; gap:10px;
+    padding:6px 2px 10px 2px;
+  }
+  .backbtn{
+    display:inline-flex; align-items:center; gap:5px;
+    background:linear-gradient(180deg, rgba(255,250,238,.05), rgba(0,0,0,.05));
+    border:1px solid var(--card-edge);
+    border-radius:var(--r-sm);
+    color:var(--ink-soft); font-size:13px;
+    font-family:"Zen Kurenaido",sans-serif;
+    padding:7px 12px; cursor:pointer;
+    transition:transform .12s ease;
+  }
+  .backbtn:active{ transform:scale(.95); }
+  .topbar .ttl{
+    font-family:"Yuji Syuku",serif; font-size:16px;
+    color:var(--gold); letter-spacing:.08em;
+  }
+  /* 専門画面の本体＝1枚の大カードで全画面 */
+  .pane{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+  .pane.card{ padding:var(--pad); overflow:auto; }
+
+  /* 🏆 順位の専門画面＝フル順位表 */
+  .ranktable{ list-style:none; display:flex; flex-direction:column; gap:7px; }
+  .ranktable li{
+    display:flex; align-items:center; gap:10px;
+    font-size:14px; color:var(--ink-soft);
+    background:rgba(255,250,238,.02);
+    border:1px solid rgba(58,52,42,.6);
+    border-radius:var(--r-md);
+    padding:10px 12px;
+  }
+  .ranktable .pos{
+    font-feature-settings:"tnum"; color:var(--ink-faint);
+    min-width:26px; text-align:center; font-size:15px;
+  }
+  .ranktable .who{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ranktable .cnt{ color:var(--ink-faint); font-size:13px; font-feature-settings:"tnum"; }
+  .ranktable .cnt b{ color:var(--ink-soft); font-weight:600; font-size:16px; margin-right:2px; }
+  .ranktable li.me{
+    background:linear-gradient(180deg, rgba(217,138,91,.16), rgba(217,138,91,.04));
+    border-color:rgba(217,138,91,.5);
+    color:var(--vermilion-soft);
+  }
+  .ranktable li.me .pos, .ranktable li.me .cnt, .ranktable li.me .cnt b{ color:var(--vermilion-soft); }
+
+  /* 🎯 目標の専門画面＝3段すべて（大きめに） */
+  .goalfull{ display:flex; flex-direction:column; gap:12px; }
+  .goalfull .step{ padding:11px 13px; }
+  .goalfull .step .when{ width:64px; font-size:13.5px; }
+  .goalfull .step .num{ font-size:13.5px; margin-bottom:5px; }
+  .goalfull .lead{ font-size:var(--fs-small); color:var(--ink-faint); margin-bottom:4px; }
+
+  /* 🗺️ 地図の専門画面＝全画面の大きい地図 */
+  .mapfull{ flex:1 1 auto; min-height:0; }
+</style>
+</head>
+<body>
+
+<!-- ====== ホーム画面（3ゾーン＝それぞれタップで専門画面へ） ====== -->
+<div class="app screen show" id="home">
+
+  <!-- ====== 3ゾーン本体 ====== -->
+  <div class="stage">
+
+    <!-- ◀ 左：縦帯（今月のアポ件数の順位／全高・幅約19%・"ランキング"の語は出さない）＝タップで順位の専門画面へ -->
+    <section class="card rank tap" aria-label="今月のアポ件数（タップで順位を全部見る）"
+             role="button" tabindex="0" data-go="rank">
+      <span class="hint">›</span>
+      <div class="cap"><span class="ic">📅</span>今月のアポ</div>
+      <ol id="rankList"><!-- JSで数人ぶん --></ol>
+    </section>
+
+    <!-- ▶ 右列：上=目標(1/3) / 下=地図(2/3) -->
+    <div class="right">
+
+      <!-- 右上：きょうの目標＝今の時間帯のぶんだけ（追うのは"話した数"）＝タップで3段すべての専門画面へ -->
+      <section class="card goal tap" aria-label="きょうの目標（タップで一日ぶん見る）"
+               role="button" tabindex="0" data-go="goal" style="position:relative;">
+        <span class="hint">›</span>
+        <div class="h">
+          <span class="t">きょうの目標</span>
+          <span class="sub" id="gSub">話した数</span>
+        </div>
+        <div class="steps" id="gStepNow"><!-- JSで今の時間帯1段だけ --></div>
+      </section>
+
+      <!-- 右下：地図（航空写真っぽい背景＋足あと）＝タップで全画面地図へ -->
+      <section class="card map tap" aria-label="今日の足あと地図（タップで大きく見る）"
+               role="button" tabindex="0" data-go="map">
+        <span class="hint" style="color:var(--ink-soft)">›</span>
+        <span class="tag">地図</span>
+        <span class="road r1"></span>
+        <span class="road r2"></span>
+        <!-- 足あとピン（サンプル・%位置） -->
+        <span class="pin visit" style="left:20%; top:30%"></span>
+        <span class="pin visit" style="left:34%; top:52%"></span>
+        <span class="pin talk"  style="left:48%; top:40%"></span>
+        <span class="pin visit" style="left:60%; top:58%"></span>
+        <span class="pin talk"  style="left:68%; top:33%"></span>
+        <span class="pin now"   style="left:76%; top:62%"></span>
+        <div class="legend">
+          <span><i class="dot d-v"></i>歩いた</span>
+          <span><i class="dot d-t"></i>話せた</span>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ====== 下：細いバー＝入力プレースホルダ（手描きに無い） ====== -->
+  <div class="inputbar">
+    <div class="btn" id="recBtn"><span>✍️</span><span>1軒記録</span></div>
+    <div class="note">※入力の置き場所は要相談（仮置き）</div>
+  </div>
+
+</div>
+
+<!-- ====== 🏆 順位の専門画面（フル順位表） ====== -->
+<div class="screen" id="rank">
+  <div class="topbar">
+    <button class="backbtn" data-go="home">◀ 戻る</button>
+    <span class="ttl">今月のアポ 順位</span>
+  </div>
+  <section class="pane card" aria-label="今月のアポ件数の順位（全員）">
+    <ol class="ranktable" id="rankFull"><!-- JSで全員ぶん --></ol>
+  </section>
+</div>
+
+<!-- ====== 🎯 目標の専門画面（3段すべて） ====== -->
+<div class="screen" id="goal">
+  <div class="topbar">
+    <button class="backbtn" data-go="home">◀ 戻る</button>
+    <span class="ttl">きょうの目標</span>
+  </div>
+  <section class="pane card" aria-label="きょうの目標（一日ぶん・話した数）">
+    <div class="lead">追うのは「話した数」。今いる時間帯はそっと印。</div>
+    <div class="steps goalfull" id="gStepsAll"><!-- JSで3段すべて --></div>
+  </section>
+</div>
+
+<!-- ====== 🗺️ 地図の専門画面（全画面の大きい地図） ====== -->
+<div class="screen" id="map">
+  <div class="topbar">
+    <button class="backbtn" data-go="home">◀ 戻る</button>
+    <span class="ttl">きょうの足あと</span>
+  </div>
+  <section class="pane card map mapfull" aria-label="今日の足あと地図（全画面）">
+    <span class="road r1"></span>
+    <span class="road r2"></span>
+    <!-- 足あとピン（サンプル・%位置） -->
+    <span class="pin visit" style="left:20%; top:30%"></span>
+    <span class="pin visit" style="left:34%; top:52%"></span>
+    <span class="pin talk"  style="left:48%; top:40%"></span>
+    <span class="pin visit" style="left:60%; top:58%"></span>
+    <span class="pin talk"  style="left:68%; top:33%"></span>
+    <span class="pin visit" style="left:30%; top:72%"></span>
+    <span class="pin talk"  style="left:55%; top:24%"></span>
+    <span class="pin now"   style="left:76%; top:62%"></span>
+    <div class="legend">
+      <span><i class="dot d-v"></i>歩いた</span>
+      <span><i class="dot d-t"></i>話せた</span>
+    </div>
+  </section>
+</div>
+
+<script>
+/* =========================================================================
+   この画面はモック（サンプル数値）。本物のGPS・実データは入れない＝¥0・単一HTML。
+   役割：手描きレイアウト（左帯ランキング／右上 目標／右下 地図）を
+        "実際のスマホ画面"として正確に再現できたかの証明＋型の見本。
+   数字は本番では地図のピン（タップ記録）から自動集計される想定。
+   ========================================================================= */
+
+// サンプルデータ（「一筆」画面と同じあだ名・例の数字に揃える）
+var data = {
+  nick:  "ハヤテ",
+  // きょう"話した数"（訪問でもアポでもなく、話せた数）
+  talkedNow: 5,
+  // きょうの目標＝時間チェックポイント3段（〜13時/〜17時/〜19時の話した数）
+  // hourEnd＝その段が締まる時刻（時）。現在時刻の出し分けに使う。
+  timeGoals: [
+    { until:"〜13時", target:3,  hourEnd:13 },
+    { until:"〜17時", target:7,  hourEnd:17 },
+    { until:"〜19時", target:10, hourEnd:19 }
+  ],
+  // 順位＝今月のアポ件数（多い順）。フル順位表は人数多めに。煽らない。
+  ranking: [
+    { who:"ケン",   cnt:9 },
+    { who:"ハヤテ", cnt:6, me:true },   // ← 自分
+    { who:"ミオ",   cnt:4 },
+    { who:"ソウ",   cnt:2 },
+    { who:"リク",   cnt:8 },
+    { who:"アヤ",   cnt:5 },
+    { who:"ジン",   cnt:3 },
+    { who:"ノア",   cnt:7 },
+    { who:"ユウ",   cnt:1 },
+    { who:"カイ",   cnt:5 }
+  ]
+};
+
+// --- 今が何時か＝現在の時間帯（段）を決める ---
+// 〜13時より前=0段／13:00〜17:00=1段／17:00〜19:00=2段／19:00以降=2段(終い)。
+function currentBandIndex(goals){
+  var h = new Date().getHours();
+  for (var i = 0; i < goals.length; i++){
+    if (h < goals[i].hourEnd) return i;   // この段がまだ進行中
+  }
+  return goals.length - 1;                // 19時以降＝最後の段（おつかれさま）
+}
+
+// --- 1段ぶんのHTML（目標と進捗＝話した数 5/7・あと2 ＋バー） ---
+function stepHtml(goal, now, isLive){
+  var target = goal.target;
+  var done = now >= target;
+  var pct  = target > 0 ? Math.min(100, Math.round(now / target * 100)) : 0;
+  var left = Math.max(0, target - now);
+  var cls  = "step" + (isLive ? " live" : "") + (done ? " done" : "");
+  var numHtml = done
+    ? '<b>' + now + '/' + target + '</b>・達成'
+    : now + '/' + '<b>' + target + '</b>・あと ' + left;
+  return '<div class="' + cls + '">'
+       +   '<span class="when">' + goal.until + '</span>'
+       +   '<span class="mid">'
+       +     '<span class="num">' + numHtml + '</span>'
+       +     '<span class="bar"><i style="width:' + pct + '%"></i></span>'
+       +   '</span>'
+       + '</div>';
+}
+
+// --- ホームの目標＝「今の時間帯のぶんだけ」1段（19時以降はおつかれさま） ---
+function renderGoalHome(d){
+  var now = d.talkedNow;
+  var goals = d.timeGoals;
+  var band = currentBandIndex(goals);
+  var h = new Date().getHours();
+  var box = document.getElementById("gStepNow");
+
+  if (h >= goals[goals.length - 1].hourEnd){
+    // 19時以降＝静かに締める
+    box.innerHTML = '<div class="step done">'
+      + '<span class="when">きょう</span>'
+      + '<span class="mid"><span class="num">話した数 <b>' + now + '</b> ・ おつかれさま</span></span>'
+      + '</div>';
+    return;
+  }
+  // 今の段だけ（必ず live で強調）
+  box.innerHTML = stepHtml(goals[band], now, true);
+}
+
+// --- 目標の専門画面＝3段すべて。今いる段を強調 ---
+function renderGoalAll(d){
+  var now = d.talkedNow;
+  var goals = d.timeGoals;
+  var band = currentBandIndex(goals);
+  var html = "";
+  for (var i = 0; i < goals.length; i++){
+    html += stepHtml(goals[i], now, i === band);
+  }
+  document.getElementById("gStepsAll").innerHTML = html;
+}
+
+// --- 順位データを多い順に並べた配列を返す ---
+function sortedRanking(d){
+  return d.ranking.slice().sort(function(a,b){ return b.cnt - a.cnt; });
+}
+
+// --- ホームの左帯：今月のアポ順位（小さく・自分は朱で強調） ---
+function renderRankHome(d){
+  var list = sortedRanking(d);
+  var html = "";
+  for (var i = 0; i < list.length; i++){
+    var r = list[i];
+    html += '<li class="' + (r.me ? "me" : "") + '">'
+          + '<span class="pos">' + (i + 1) + '</span>'
+          + '<span class="who">' + r.who + '</span>'
+          + '<span class="cnt">' + r.cnt + '</span>'
+          + '</li>';
+  }
+  document.getElementById("rankList").innerHTML = html;
+}
+
+// --- 順位の専門画面：フル順位表（全員・件数・自分強調） ---
+function renderRankFull(d){
+  var list = sortedRanking(d);
+  var html = "";
+  for (var i = 0; i < list.length; i++){
+    var r = list[i];
+    html += '<li class="' + (r.me ? "me" : "") + '">'
+          + '<span class="pos">' + (i + 1) + '</span>'
+          + '<span class="who">' + r.who + (r.me ? '（あなた）' : '') + '</span>'
+          + '<span class="cnt"><b>' + r.cnt + '</b>件</span>'
+          + '</li>';
+  }
+  document.getElementById("rankFull").innerHTML = html;
+}
+
+// --- 入力ボタンはまだ仮置き（勝手に確定しない） ---
+function onRec(){
+  alert("ここに「1軒記録」が入る予定です。\n置き場所（この下バー／別画面など）は要相談です。");
+}
+
+/* ── 画面切替（SPA風・#rank/#goal/#map ハッシュ対応） ────────────── */
+var SCREENS = ["home", "rank", "goal", "map"];
+function showScreen(name){
+  if (SCREENS.indexOf(name) < 0) name = "home";
+  for (var i = 0; i < SCREENS.length; i++){
+    var el = document.getElementById(SCREENS[i]);
+    if (el) el.classList.toggle("show", SCREENS[i] === name);
+  }
+}
+// URLハッシュを正として反映（#rank等／空ならホーム）
+function syncFromHash(){
+  var h = (location.hash || "").replace("#", "");
+  showScreen(h || "home");
+}
+// ゾーン/戻るボタンのタップ＝ハッシュを書き換える（履歴に残る＝端末の戻るでも戻れる）
+function goTo(name){
+  location.hash = (name === "home") ? "" : ("#" + name);
+}
+
+// 描画
+renderGoalHome(data);
+renderGoalAll(data);
+renderRankHome(data);
+renderRankFull(data);
+document.getElementById("recBtn").addEventListener("click", onRec);
+
+// 全ての data-go（3ゾーン＋戻るボタン）にタップ遷移を結ぶ
+var navEls = document.querySelectorAll("[data-go]");
+for (var n = 0; n < navEls.length; n++){
+  (function(el){
+    el.addEventListener("click", function(){ goTo(el.getAttribute("data-go")); });
+    // キーボード/アクセシビリティ（role=button のゾーン用）
+    el.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); goTo(el.getAttribute("data-go")); }
+    });
+  })(navEls[n]);
+}
+
+// ハッシュ変化に追従＋初期表示（#rank等でディープリンク可能）
+window.addEventListener("hashchange", syncFromHash);
+syncFromHash();
+</script>
+</body>
+</html>
