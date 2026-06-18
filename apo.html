@@ -873,10 +873,10 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){
 // ── 地図タイル（無料・キー不要）。URLはコードに直書きで良い＝APIキーではない ──
 function esriTiles(){ return L.tileLayer(
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  { maxZoom:20, attribution:"Esri World Imagery" }); }   // {z}/{y}/{x}＝yが先（注意）
+  { maxZoom:21, maxNativeZoom:19, attribution:"Esri World Imagery" }); }   // {z}/{y}/{x}＝yが先。z19が実データの限界→以降は拡大表示(maxNativeZoom)で灰色"not available"を出さない
 function gsiTiles(){ return L.tileLayer(
   "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg",
-  { maxZoom:18, attribution:"地理院タイル（国土地理院）" }); }
+  { maxZoom:21, maxNativeZoom:18, attribution:"地理院タイル（国土地理院）" }); }
 
 // GPSが取れない時のフォールバック（東京近郊住宅地・管理マップと同じあたり）
 var SAMPLE_CENTER = [35.7010, 139.5500];
@@ -1107,7 +1107,7 @@ function renderHomeLegend(){
 function initFullMap(){
   if(fullMap) return;
   var esri=esriTiles(), gsi=gsiTiles();
-  fullMap = L.map("fullMap", {scrollWheelZoom:true, maxZoom:20, layers:[esri]})
+  fullMap = L.map("fullMap", {scrollWheelZoom:true, maxZoom:21, layers:[esri]})
     .setView(SAMPLE_CENTER, 18);
   // 既定＝Esri航空写真／切替で国土地理院 航空写真（D-136）
   L.control.layers({ "航空写真（詳細・Esri）":esri, "航空写真（国土地理院）":gsi },
