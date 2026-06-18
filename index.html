@@ -157,6 +157,10 @@ var SCREENS = {
   }
 };
 
+var BUILD = "20260618c";  // 更新のたび変える＝古いキャッシュを避ける合言葉
+/* 常に最新を取りに行く（サービスワーカー＝network-first）。挙動は変えない・裏方だけ */
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+
 var LS_LAST = "launcher.last";       // 最後に開いた画面のキー
 var LS_HIST = "launcher.history";    // 最近使った順（配列）
 
@@ -186,7 +190,7 @@ function openScreen(key){
   if(!s) return;
   if(s.soon){ showToast("準備中です"); return; }   // クローザーはまだ
   if(stage.getAttribute("data-key") !== key){
-    stage.src = s.src;
+    stage.src = s.src + (s.src.indexOf('?')<0?'?':'&') + 'v=' + BUILD;
     stage.setAttribute("data-key", key);
   }
   stage.classList.add("show");
