@@ -14,9 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Zen+Kurenaido&display=swap" rel="stylesheet">
 
-<!-- 本物の地図（Leaflet＝無料・キー不要のCDN1本。タイルはEsri/国土地理院の無料航空写真） -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<!-- 本物の地図＝Google Maps JavaScript API（高解像度の航空写真 hybrid）。鍵は下のscript1本のみ -->
 
 <style>
   /* ============================================================
@@ -223,15 +221,15 @@
     box-shadow:0 0 8px rgba(143,174,125,.4);
   }
 
-  /* ── 右下：地図（本物の航空写真＝Leaflet。ホームは小さなプレビュー）──── */
+  /* ── 右下：地図（本物の航空写真＝Google Maps hybrid。ホームは小さなプレビュー）──── */
   .map{
     position:relative;
     background:#211e1a;   /* タイル読込前の下地（墨） */
   }
-  /* 実際の地図が入る器（Leafletのキャンバス） */
-  .map .leafmap{ position:absolute; inset:0; z-index:1; }
+  /* 実際の地図が入る器（Google Mapsのキャンバス） */
+  .map .gmap{ position:absolute; inset:0; z-index:1; }
   /* ホームのプレビューはタップで専門画面へ＝地図自体は触らせない（指で操作させない） */
-  #home .map .leafmap{ pointer-events:none; }
+  #home .map .gmap{ pointer-events:none; }
   /* 帯ラベル「地図」＝左上に小さく（地図の上に浮かす） */
   .map .tag{
     position:absolute; left:8px; top:7px; z-index:3;
@@ -250,32 +248,32 @@
   }
   .map .legend .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:3px; vertical-align:middle; }
 
-  /* Leafletのポップアップ／ツールチップを墨+朱+金の型に合わせる */
-  .leaflet-container{ font-family:"Zen Kurenaido","Hiragino Sans",sans-serif; background:#211e1a; }
-  .leaflet-popup-content-wrapper{
-    background:var(--card); color:var(--ink); border:1px solid var(--card-edge);
-    border-radius:var(--r-md); box-shadow:0 14px 34px -18px rgba(0,0,0,.85);
+  /* Google Mapsのキャンバス＝下地は墨。InfoWindowの中身（.markform）は型で揃える */
+  .gm-style{ font-family:"Zen Kurenaido","Hiragino Sans",sans-serif; }
+  /* InfoWindowの白い吹き出しを墨+朱+金の型に寄せる（中の文字色が読めるように） */
+  .gm-style .gm-style-iw-c{
+    background:var(--card)!important; color:var(--ink)!important;
+    border:1px solid var(--card-edge); border-radius:var(--r-md)!important;
+    box-shadow:0 14px 34px -18px rgba(0,0,0,.85)!important; padding:0!important;
   }
-  .leaflet-popup-tip{ background:var(--card); border:1px solid var(--card-edge); }
-  .leaflet-popup-content{ font-size:12.5px; line-height:1.6; margin:10px 12px; }
-  .leaflet-control-zoom a, .leaflet-bar a{
-    background:var(--card); color:var(--ink-soft); border-color:var(--card-edge);
-  }
-  .leaflet-control-attribution{ background:rgba(26,24,21,.7)!important; color:var(--ink-faint)!important; font-size:9px; }
-  .leaflet-control-attribution a{ color:var(--ink-soft)!important; }
-  /* マーク（絵文字アイコン）＝航空写真の上でも沈まない白フチ */
-  .pinmark span{ font-size:22px; line-height:26px; text-align:center; display:block;
+  .gm-style .gm-style-iw-d{ overflow:visible!important; color:var(--ink); }
+  .gm-style .gm-style-iw-tc::after{ background:var(--card)!important; }
+  .gm-style .gm-style-iw-chr{ height:0; }
+  .gm-style .gm-ui-hover-effect{ filter:invert(1) brightness(1.4); top:2px!important; right:2px!important; }
+  /* マーク（絵文字アイコン）＝航空写真の上でも沈まない白フチ。Markerのlabelに使う */
+  .pinmark{ font-size:22px; line-height:1; text-align:center;
     text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px rgba(0,0,0,.6); }
-  /* ピン横の常時ラベル（コメントが有る時だけ・読めるよう墨地に白フチ） */
-  .leaflet-tooltip.pin-label{
+  /* ピン横の常時ラベル（コメントが有る時だけ・読めるよう墨地に白フチ）＝下に出すOverlay */
+  .pin-label{
     background:rgba(26,24,21,.84); color:var(--ink); border:1px solid rgba(240,233,218,.5);
     border-radius:7px; padding:2px 7px; font-size:11px; font-weight:600;
     box-shadow:0 1px 4px rgba(0,0,0,.5); white-space:nowrap;
+    font-family:"Zen Kurenaido","Hiragino Sans",sans-serif;
+    transform:translate(-50%, 6px); display:inline-block;
   }
-  .leaflet-tooltip.pin-label::before{ display:none; }
-  /* 現在地マーカー（脈打つ朱／青ではなく和の差し色） */
-  .here-dot span{
-    display:block; width:14px; height:14px; border-radius:50%;
+  /* 現在地マーカー（脈打つ朱／青ではなく和の差し色）＝Overlayで描く */
+  .here-dot{
+    width:14px; height:14px; border-radius:50%; transform:translate(-50%,-50%);
     background:var(--leaf); border:2px solid #fff; box-shadow:0 0 0 0 rgba(143,174,125,.6);
     animation:pulse 1.8s ease-out infinite;
   }
@@ -408,8 +406,8 @@
     padding:10px 11px;
     border-bottom:1px solid var(--card-edge);
   }
-  #map .leafmapfull{ flex:1 1 auto; min-height:0; position:relative; }
-  #map .leafmapfull .leafmap{ position:absolute; inset:0; }
+  #map .gmapfull{ flex:1 1 auto; min-height:0; position:relative; }
+  #map .gmapfull .gmap{ position:absolute; inset:0; }
   /* 「📍 ここにピン」＝主役の朱ボタン */
   .map-btn{
     display:inline-flex; align-items:center; gap:6px;
@@ -456,8 +454,6 @@
   .markform .mini.danger{ border-color:rgba(217,138,91,.5); color:#e6a09a; }
   /* 🧭 ここへ行く（ルート＝スマホの地図アプリで開く）＝控えめな緑 */
   .markform .mini.go{ border-color:rgba(143,174,125,.55); color:var(--leaf); text-decoration:none; }
-  /* 🛰️ Googleの航空写真で見る（高画質確認＝Googleで開く）＝控えめな金 */
-  .markform .mini.sat{ border-color:rgba(203,178,122,.6); color:var(--gold); text-decoration:none; }
   .markform .gonote{ font-size:10px; color:var(--ink-faint); margin-top:5px; opacity:.85; }
 
   /* ── 🗺️ 地図 / 📋 リスト 切替（#map上部の道具帯に置く小さなトグル） ── */
@@ -475,20 +471,10 @@
     background:linear-gradient(180deg, rgba(217,138,91,.18), rgba(217,138,91,.05));
     color:var(--vermilion-soft); font-weight:700;
   }
-  /* 🛰️ 今このへんをGoogleで見る（地図上部）＝控えめな金リンク */
-  .sat-btn{
-    display:inline-flex; align-items:center; gap:5px; text-decoration:none;
-    background:linear-gradient(180deg, rgba(203,178,122,.14), rgba(203,178,122,.04));
-    border:1px solid rgba(203,178,122,.5); border-radius:var(--r-md);
-    color:var(--gold); font-weight:600; font-size:12.5px;
-    font-family:"Zen Kurenaido",sans-serif; padding:8px 11px;
-  }
-  .sat-btn:active{ transform:scale(.96); }
-
   /* 📋 自分のピンのリスト（新しい順・地図⇄切替の片方） */
-  #map .leaflistfull{ flex:1 1 auto; min-height:0; overflow:auto; padding:10px 11px; display:none; }
-  #map.listmode .leafmapfull{ display:none; }
-  #map.listmode .leaflistfull{ display:block; }
+  #map .gmaplistfull{ flex:1 1 auto; min-height:0; overflow:auto; padding:10px 11px; display:none; }
+  #map.listmode .gmapfull{ display:none; }
+  #map.listmode .gmaplistfull{ display:block; }
   .pinrow{
     display:flex; align-items:flex-start; gap:9px;
     background:rgba(255,250,238,.02); border:1px solid rgba(58,52,42,.6);
@@ -507,7 +493,6 @@
     border:1.5px solid var(--card-edge); background:rgba(255,250,238,.03); color:var(--ink-soft);
     border-radius:8px; padding:6px 9px; font-size:11.5px; font-family:inherit;
   }
-  .pinrow .acts .sat{ border-color:rgba(203,178,122,.6); color:var(--gold); }
   .pinrow .acts .go{ border-color:rgba(143,174,125,.55); color:var(--leaf); }
   .pinrow .acts .edit{ border-color:rgba(217,138,91,.5); color:var(--vermilion-soft); }
   .listempty{ text-align:center; color:var(--ink-faint); font-size:12.5px; padding:24px 8px; line-height:1.7; }
@@ -589,7 +574,7 @@
         <span class="hint" style="color:var(--ink-soft)">›</span>
         <span class="tag">地図</span>
         <!-- 本物の地図が入る器（ホームは触らせない＝タップで全画面へ） -->
-        <div class="leafmap" id="homeMap"></div>
+        <div class="gmap" id="homeMap"></div>
         <div class="legend" id="homeLegend"><!-- JSで仮マークの色見本 --></div>
       </section>
 
@@ -646,30 +631,28 @@
     <span class="ttl">きょうの足あと</span>
   </div>
   <section class="pane card map mapfull" aria-label="今日の足あと地図（全画面・本物の航空写真）">
-    <!-- 上：道具帯（地図⇄リスト切替／ここにピン／🛰️Googleで高画質） -->
+    <!-- 上：道具帯（地図⇄リスト切替／ここにピン） -->
     <div class="maptools">
       <span class="seg" role="group" aria-label="地図とリストの切替">
         <button id="segMap" class="on" type="button">🗺️ 地図</button>
         <button id="segList" type="button">📋 リスト</button>
       </span>
       <button class="map-btn" id="addPinBtn">📍 ここにピン</button>
-      <a class="sat-btn" id="satHereBtn" target="_blank" rel="noopener" href="#">🛰️ 今このへんをGoogleで見る</a>
-      <span class="map-tip" id="addPinTip">家の前で「ここにピン」→マークを選ぶ＝2タップ。屋根や太陽光パネルの<b>高画質</b>は「🛰️」でGoogleの航空写真が開きます（¥0）。</span>
+      <span class="map-tip" id="addPinTip">家の前で「ここにピン」→マークを選ぶ＝2タップ。地図は<b>高画質の航空写真</b>。指でつまんで深く拡大できます。</span>
     </div>
-    <!-- 真ん中：本物の航空写真（既定Esri・切替で国土地理院／現在地＋精度円＋自分のピン） -->
-    <div class="leafmapfull">
-      <div class="leafmap" id="fullMap"></div>
+    <!-- 真ん中：本物の航空写真（Google Maps hybrid＝航空写真＋地名／現在地＋精度円＋自分のピン） -->
+    <div class="gmapfull">
+      <div class="gmap" id="fullMap"></div>
     </div>
     <!-- 真ん中：自分のピンの一覧（新しい順）＝地図と切り替えて使う -->
-    <div class="leaflistfull" id="pinList"><!-- JSで新しい順に --></div>
+    <div class="gmaplistfull" id="pinList"><!-- JSで新しい順に --></div>
     <!-- 下：仮の注記 -->
-    <div class="map-note" id="mapNote">※マークの種類は<b>仮</b>です（あとでオーナーが直します）。位置・記録はこのアプリに残ります。高画質・ナビは<b>Google</b>で開きます（データは渡しません）。</div>
+    <div class="map-note" id="mapNote">※マークの種類は<b>仮</b>です（あとでオーナーが直します）。位置・記録はこのアプリに残ります。ナビ（ここへ行く）は<b>Google</b>で開きます。</div>
   </section>
 </div>
 
-<!-- 本物の地図（Leaflet本体・無料CDN1本） -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- 本物の地図＝Google Maps JavaScript API（高解像度の航空写真）。鍵はこの1本のみ（後でサイト限定に制限） -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAKNs7uzY9RsM2qZXdBlL6cekzQauM3PL4&v=weekly&loading=async&callback=__initGmaps"></script>
 <script>
 /* =========================================================================
    この画面はモック（サンプル数値）。本物のGPS・実データは入れない＝¥0・単一HTML。
@@ -898,12 +881,12 @@ function goTo(name){
 }
 
 /* =========================================================================
-   ★ 本物の地図（Leaflet＋無料の航空写真）＋マーク式ピン（D-136準拠）
-   ・既定＝Esri World Imagery（深く拡大できる）／切替＝国土地理院 航空写真
+   ★ 本物の地図（Google Maps JavaScript API＝高解像度の航空写真 hybrid）＋マーク式ピン
+   ・mapTypeId='hybrid'（航空写真＋地名ラベル）。maxZoom無制限＝Googleが自動で深く拡大。
    ・現在地マーカー＋精度円。ピンは2タップ（📍ここにピン→マークを選ぶ）で確定。
    ・地図を直接タップでも任意の場所に置ける（その家に立ってない時用）。
-   ・ピンは localStorage（apo.pins.v1）に保存。開き直しても残る。
-   ・更新（D-136＝更新時もGPSを取る）：マーク変更／コメント／📍位置を取り直す／削除
+   ・ピンは localStorage（apo.pins.v1）に保存。開き直しても残る（DB連携の土台＝不変）。
+   ・更新（更新時もGPSを取る）：マーク変更／コメント／📍位置を取り直す／削除
    ========================================================================= */
 
 // ── 仮のマーク一覧（あとでオーナーが直す前提。色は管理マップと同系統） ──
@@ -931,19 +914,22 @@ function savePins(){
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 
-// ── Googleで見る/ナビのURL（リンクだけ＝データは渡さない・¥0・カード不要） ──
-// 🛰️ 高画質の航空写真（衛星）：Googleマップの衛星表示でその地点を開く（iPhoneはGoogleマップアプリが衛星で開く）
-function gSatUrl(lat, lng){ return "https://www.google.com/maps/@"+lat+","+lng+",19z/data=!3m1!1e3"; }
-// 🧭 ここへ行く（ナビ）：出発地はGoogle側が現在地を自動。既存のピン編集と同じ式。
+// ── 🧭 ここへ行く（ナビ）のURL（リンクだけ＝既存維持）。出発地はGoogle側が現在地を自動。
 function gDirUrl(lat, lng){ return "https://www.google.com/maps/dir/?api=1&destination="+lat+","+lng; }
 
-// ── 地図タイル（無料・キー不要）。URLはコードに直書きで良い＝APIキーではない ──
-function esriTiles(){ return L.tileLayer(
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  { maxZoom:21, maxNativeZoom:19, attribution:"Esri World Imagery" }); }   // {z}/{y}/{x}＝yが先。z19が実データの限界→以降は拡大表示(maxNativeZoom)で灰色"not available"を出さない
-function gsiTiles(){ return L.tileLayer(
-  "https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg",
-  { maxZoom:21, maxNativeZoom:18, attribution:"地理院タイル（国土地理院）" }); }
+// ── Google Maps APIの準備フラグ＋ロード待ち（callback=__initGmapsで立つ） ──
+var gmapsReady = false;
+function __initGmaps(){            // ← scriptタグのcallbackから1回呼ばれる
+  gmapsReady = true;
+  // 既に表示中の画面に合わせて地図を起こす（ハッシュ初期表示より後にAPIが来てもOK）
+  var h = (location.hash||"").replace("#","");
+  if(h === "map") onMapShown();
+  else onHomeShown();
+}
+function whenGmaps(cb){            // API到着後に実行（到着済みなら即時）
+  if(gmapsReady) cb();
+  else { var t = setInterval(function(){ if(gmapsReady){ clearInterval(t); cb(); } }, 80); }
+}
 
 // GPSが取れない時のフォールバック（東京近郊住宅地・管理マップと同じあたり）
 var SAMPLE_CENTER = [35.7010, 139.5500];
@@ -1003,42 +989,92 @@ document.addEventListener("visibilitychange", function(){
 
 // ── 地図インスタンス（ホーム小プレビュー／全画面）と各レイヤ ──
 var fullMap=null, homeMap=null;
-var pinLayer=null, hereLayer=null;          // 全画面用
-var homePinLayer=null, homeHereLayer=null;  // ホーム用
-var placing=false;                          // 「📍 ここにピン」or地図タップの仮置き待ち
+var openInfoWindow=null;                     // 開いているInfoWindow（同時に1つだけ）
+// レイヤ＝地図ごとにオーバーレイ/図形（Circle）を配列で持ち、まとめて消す
+var fullPinObjs=[], homePinObjs=[];          // ピンの絵文字＆コメントラベル（HtmlOverlay）
+var fullHereObjs=[], homeHereObjs=[];        // 現在地の点（HtmlOverlay）＋精度円（Circle）
+
+/* ── HTMLオーバーレイ（任意のlatlngに自由なHTML要素を浮かべる）──
+   絵文字ピン・コメントラベル・現在地の脈打つ点を、CSSの型(.pinmark/.pin-label/.here-dot)
+   のまま航空写真の上に置くための薄いラッパ（OverlayViewの最小実装）。 */
+function makeHtmlOverlay(){
+  function HtmlOverlay(latlng, el, onClick){
+    this.latlng = latlng; this.el = el; this.onClick = onClick;
+  }
+  HtmlOverlay.prototype = new google.maps.OverlayView();
+  HtmlOverlay.prototype.onAdd = function(){
+    var self = this;
+    this.el.style.position = "absolute";
+    this.el.style.cursor = this.onClick ? "pointer" : "default";
+    this.getPanes().overlayMouseTarget.appendChild(this.el);
+    if(this.onClick){
+      this._lis = google.maps.event.addDomListener(this.el, "click", function(e){
+        e.stop && e.stop();
+        if(e.stopPropagation) e.stopPropagation();
+        self.onClick();
+      });
+    }
+  };
+  HtmlOverlay.prototype.draw = function(){
+    var pos = this.getProjection().fromLatLngToDivPixel(this.latlng);
+    if(!pos) return;
+    this.el.style.left = pos.x + "px";
+    this.el.style.top  = pos.y + "px";
+  };
+  HtmlOverlay.prototype.onRemove = function(){
+    if(this._lis){ google.maps.event.removeListener(this._lis); this._lis=null; }
+    if(this.el && this.el.parentNode){ this.el.parentNode.removeChild(this.el); }
+  };
+  return HtmlOverlay;
+}
+var HtmlOverlay = null;   // initFullMap/initHomeMap で google到着後に作る
+
+function clearOverlays(arr){ arr.forEach(function(o){ if(o.setMap) o.setMap(null); }); arr.length = 0; }
 
 // 現在地マーカー＋精度円を描く（両マップ）
 function drawHere(){
   if(!hereLatLng) return;
-  [{m:fullMap, lyr:hereLayer}, {m:homeMap, lyr:homeHereLayer}].forEach(function(o){
-    if(!o.m || !o.lyr) return;
-    o.lyr.clearLayers();
+  var ll = new google.maps.LatLng(hereLatLng[0], hereLatLng[1]);
+  [{m:fullMap, arr:fullHereObjs}, {m:homeMap, arr:homeHereObjs}].forEach(function(o){
+    if(!o.m) return;
+    clearOverlays(o.arr);
     if(hereAcc!=null){
-      L.circle(hereLatLng, {radius:hereAcc, color:"#cbb27a", weight:1.5, opacity:.8,
-        fillColor:"#cbb27a", fillOpacity:.10, dashArray:"4 4"}).addTo(o.lyr);
+      o.arr.push(new google.maps.Circle({
+        map:o.m, center:ll, radius:hereAcc,
+        strokeColor:"#cbb27a", strokeOpacity:.8, strokeWeight:1.5,
+        fillColor:"#cbb27a", fillOpacity:.10, clickable:false, zIndex:1 }));
     }
-    var dot = L.divIcon({className:"here-dot", html:"<span></span>", iconSize:[14,14], iconAnchor:[7,7]});
-    L.marker(hereLatLng, {icon:dot, interactive:false}).addTo(o.lyr);
+    var dot = document.createElement("div"); dot.className = "here-dot";
+    var ov = new HtmlOverlay(ll, dot, null); ov.setMap(o.m);
+    o.arr.push(ov);
   });
 }
 
 // 1本のピンを地図に描く（全画面＝編集できる／ホーム＝見るだけ）
-function drawOnePin(p, lyr, editable){
+function drawOnePin(p, map, arr, editable){
   var mk = markOf(p.mark);
-  var icon = L.divIcon({ className:"pinmark",
-    html:'<span style="color:'+mk.color+';">'+mk.icon+'</span>',
-    iconSize:[26,26], iconAnchor:[13,13] });
-  var m = L.marker([p.lat,p.lng], {icon:icon});
+  var ll = new google.maps.LatLng(p.lat, p.lng);
+  // 絵文字マーク（クリックで編集）
+  var pin = document.createElement("div");
+  pin.className = "pinmark";
+  pin.style.color = mk.color;
+  pin.style.transform = "translate(-50%,-50%)";
+  pin.textContent = mk.icon;
+  var ovPin = new HtmlOverlay(ll, pin, editable ? function(){ openEditPin(p); } : null);
+  ovPin.setMap(map); arr.push(ovPin);
+  // コメントの常時ラベル（有る時だけ・ピンの下に）
   if(p.comment){
-    m.bindTooltip(esc(p.comment), {permanent:true, direction:"right", className:"pin-label", offset:[10,0]});
+    var lab = document.createElement("div");
+    lab.className = "pin-label";
+    lab.textContent = p.comment;
+    var ovLab = new HtmlOverlay(ll, lab, null);
+    ovLab.setMap(map); arr.push(ovLab);
   }
-  if(editable){ m.on("click", function(){ openEditPin(p); }); }
-  m.addTo(lyr);
 }
 // すべてのピンを描き直す（両マップ＋リスト）
 function renderPins(){
-  if(pinLayer){ pinLayer.clearLayers(); pins.forEach(function(p){ drawOnePin(p, pinLayer, true); }); }
-  if(homePinLayer){ homePinLayer.clearLayers(); pins.forEach(function(p){ drawOnePin(p, homePinLayer, false); }); }
+  if(fullMap && HtmlOverlay){ clearOverlays(fullPinObjs); pins.forEach(function(p){ drawOnePin(p, fullMap, fullPinObjs, true); }); }
+  if(homeMap && HtmlOverlay){ clearOverlays(homePinObjs); pins.forEach(function(p){ drawOnePin(p, homeMap, homePinObjs, false); }); }
   renderPinList();   // リスト表示も同じデータから描き直す（地図と同期）
 }
 
@@ -1074,7 +1110,6 @@ function renderPinList(){
       +     cm
       +     '<div class="sub">'+esc(sub)+'</div>'
       +     '<div class="acts">'
-      +       '<a class="sat" href="'+gSatUrl(p.lat,p.lng)+'" target="_blank" rel="noopener">🛰️ Googleで見る</a>'
       +       '<a class="go" href="'+gDirUrl(p.lat,p.lng)+'" target="_blank" rel="noopener">🧭 ここへ行く</a>'
       +       '<button class="edit" type="button" data-edit="'+idx+'">✏️ 編集</button>'
       +     '</div>'
@@ -1087,7 +1122,11 @@ function renderPinList(){
       var p = pins[parseInt(b.getAttribute("data-edit"),10)];
       if(!p) return;
       setMapMode("map");
-      if(fullMap){ fullMap.invalidateSize(); fullMap.setView([p.lat,p.lng], Math.max(fullMap.getZoom(),18)); }
+      if(fullMap){
+        fullMap.setCenter({lat:p.lat, lng:p.lng});
+        fullMap.setZoom(Math.max(fullMap.getZoom()||18, 18));
+        google.maps.event.trigger(fullMap, "resize");
+      }
       openEditPin(p);
     });
   });
@@ -1101,7 +1140,12 @@ function setMapMode(mode){
   document.getElementById("segMap").classList.toggle("on", !isList);
   document.getElementById("segList").classList.toggle("on", isList);
   if(isList){ renderPinList(); }
-  else if(fullMap){ setTimeout(function(){ fullMap.invalidateSize(); renderPins(); drawHere(); }, 40); }
+  else if(fullMap){ setTimeout(function(){
+    var c = fullMap.getCenter();
+    google.maps.event.trigger(fullMap, "resize");
+    if(c) fullMap.setCenter(c);
+    renderPins(); drawHere();
+  }, 40); }
 }
 
 // ── マークを選ぶチップ＋メモ（任意）のフォームHTML ──
@@ -1121,16 +1165,10 @@ function markFormHtml(opts){
   var goBtn = (opts.lat!=null)
     ? '<a class="mini go" href="'+gDirUrl(opts.lat,opts.lng)+'" target="_blank" rel="noopener">🧭 ここへ行く</a>'
     : "";
-  // 🛰️ Googleの航空写真で見る＝屋根/太陽光パネルの高画質確認（Googleの衛星表示で開く）
-  var satBtn = (opts.lat!=null)
-    ? '<a class="mini sat" href="'+gSatUrl(opts.lat,opts.lng)+'" target="_blank" rel="noopener">🛰️ Googleの航空写真で見る</a>'
-    : "";
   var rows = opts.isNew
     ? '<span class="mini primary" data-act="save">このマークで確定</span>'
-      + satBtn
       +'<span class="mini" data-act="cancel">やめる</span>'
     : '<span class="mini primary" data-act="save">保存</span>'
-      + satBtn
       + goBtn
       +'<span class="mini retake" data-act="retake">📍 ここで位置を取り直す</span>'
       +'<span class="mini danger" data-act="del">削除</span>';
@@ -1140,7 +1178,7 @@ function markFormHtml(opts){
     +   '<div class="chips">'+chips+'</div>'
     +   '<textarea rows="2" placeholder="メモ（任意・打たなくてもOK）">'+esc(opts.comment||"")+'</textarea>'
     +   '<div class="row">'+rows+'</div>'
-    +   ((goBtn||satBtn)?'<div class="gonote">高画質・ナビはGoogleマップで開きます（¥0）</div>':'')
+    +   (goBtn?'<div class="gonote">ナビ（ここへ行く）はGoogleマップで開きます</div>':'')
     + '</div>';
 }
 
@@ -1154,24 +1192,39 @@ function wireChips(el, state){
   });
 }
 
+// ── InfoWindowを1つ開く共通（同時に1つだけ・domreadyで中身を結線） ──
+function openPopup(lat, lng, html, wire){
+  if(openInfoWindow){ openInfoWindow.close(); openInfoWindow=null; }
+  var iw = new google.maps.InfoWindow({ content:html, maxWidth:300 });
+  google.maps.event.addListener(iw, "domready", function(){
+    // InfoWindowの中身は .markform をユニークに含む＝そこを起点に結線
+    var forms = document.querySelectorAll(".gm-style .markform");
+    var el = forms[forms.length-1];
+    if(el) wire(el, iw);
+  });
+  google.maps.event.addListener(iw, "closeclick", function(){ openInfoWindow=null; });
+  iw.setPosition({lat:lat, lng:lng});
+  iw.open(fullMap);
+  openInfoWindow = iw;
+}
+
 // ── ① 新規ピン：現在地 or タップ地点に仮置き → マークを選ぶ → 確定 ──
 function openNewPin(lat, lng, acc, sample){
   var now = new Date();
   var timeLabel = ("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2);
   var state = { mark:"" };
   var html = markFormHtml({isNew:true, lat:lat, lng:lng, acc:acc, time:timeLabel, sample:sample});
-  var popup = L.popup({maxWidth:280, minWidth:230, closeButton:true})
-    .setLatLng([lat,lng]).setContent(html).openOn(fullMap);
-  var el = popup.getElement();
-  wireChips(el, state);
-  el.querySelector('[data-act="save"]').addEventListener("click", function(){
-    if(!state.mark){ alert("マークを1つ選んでください（仮のマークでOK）。"); return; }
-    var comment = el.querySelector("textarea").value.trim();
-    var iso = now.toISOString();
-    pins.push({ lat:lat, lng:lng, acc:acc, mark:state.mark, comment:comment, created:iso, updated:iso });
-    savePins(); renderPins(); fullMap.closePopup(popup);
+  openPopup(lat, lng, html, function(el, iw){
+    wireChips(el, state);
+    el.querySelector('[data-act="save"]').addEventListener("click", function(){
+      if(!state.mark){ alert("マークを1つ選んでください（仮のマークでOK）。"); return; }
+      var comment = el.querySelector("textarea").value.trim();
+      var iso = now.toISOString();
+      pins.push({ lat:lat, lng:lng, acc:acc, mark:state.mark, comment:comment, created:iso, updated:iso });
+      savePins(); renderPins(); iw.close(); openInfoWindow=null;
+    });
+    el.querySelector('[data-act="cancel"]').addEventListener("click", function(){ iw.close(); openInfoWindow=null; });
   });
-  el.querySelector('[data-act="cancel"]').addEventListener("click", function(){ fullMap.closePopup(popup); });
 }
 
 // 「📍 ここにピン」＝現在地を取って仮置き（GPSの緯度経度・精度・時刻）
@@ -1180,7 +1233,8 @@ function placeHereByGps(){
   if(tip) tip.textContent = "現在地を確認中…";
   getHere(function(h){
     hereLatLng = [h.lat, h.lng]; hereAcc = h.acc; drawHere();
-    fullMap.setView(hereLatLng, Math.max(fullMap.getZoom(), 18));
+    fullMap.setCenter({lat:h.lat, lng:h.lng});
+    fullMap.setZoom(Math.max(fullMap.getZoom()||18, 18));
     if(tip) tip.textContent = h.sample
       ? "サンプル位置に仮置き（本番はHTTPSで実測）。マークを選んでください。"
       : "現在地に仮置きしました。マークを選んでください。";
@@ -1193,35 +1247,32 @@ function openEditPin(p){
   var state = { mark:p.mark };
   var t = new Date(p.updated||p.created||Date.now());
   var timeLabel = ("0"+t.getHours()).slice(-2)+":"+("0"+t.getMinutes()).slice(-2);
-  function content(){
-    return markFormHtml({isNew:false, mark:p.mark, comment:p.comment,
-      lat:p.lat, lng:p.lng, acc:p.acc, time:timeLabel,
-      sample:false});
-  }
-  var popup = L.popup({maxWidth:300, minWidth:240, closeButton:true})
-    .setLatLng([p.lat,p.lng]).setContent(content()).openOn(fullMap);
-  var el = popup.getElement();
-  wireChips(el, state);
-  el.querySelector('[data-act="save"]').addEventListener("click", function(){
-    p.mark = state.mark; p.comment = el.querySelector("textarea").value.trim();
-    p.updated = new Date().toISOString();
-    savePins(); renderPins(); fullMap.closePopup(popup);
-  });
-  // 📍 位置を取り直す（D-136＝更新時もGPSを取る＝家を正確に）
-  el.querySelector('[data-act="retake"]').addEventListener("click", function(){
-    // 編集中のコメント／マークは先に控える
-    var keepMark = state.mark, keepComment = el.querySelector("textarea").value.trim();
-    getHere(function(h){
-      p.lat=h.lat; p.lng=h.lng; p.acc=h.acc; p.mark=keepMark; p.comment=keepComment;
-      p.updated=new Date().toISOString();
-      hereLatLng=[h.lat,h.lng]; hereAcc=h.acc; drawHere();
-      savePins(); renderPins(); fullMap.closePopup(popup);
-      fullMap.setView([h.lat,h.lng], Math.max(fullMap.getZoom(),18));
+  var html = markFormHtml({isNew:false, mark:p.mark, comment:p.comment,
+    lat:p.lat, lng:p.lng, acc:p.acc, time:timeLabel, sample:false});
+  openPopup(p.lat, p.lng, html, function(el, iw){
+    wireChips(el, state);
+    el.querySelector('[data-act="save"]').addEventListener("click", function(){
+      p.mark = state.mark; p.comment = el.querySelector("textarea").value.trim();
+      p.updated = new Date().toISOString();
+      savePins(); renderPins(); iw.close(); openInfoWindow=null;
     });
-  });
-  el.querySelector('[data-act="del"]').addEventListener("click", function(){
-    pins = pins.filter(function(x){ return x!==p; });
-    savePins(); renderPins(); fullMap.closePopup(popup);
+    // 📍 位置を取り直す（更新時もGPSを取る＝家を正確に）
+    el.querySelector('[data-act="retake"]').addEventListener("click", function(){
+      // 編集中のコメント／マークは先に控える
+      var keepMark = state.mark, keepComment = el.querySelector("textarea").value.trim();
+      getHere(function(h){
+        p.lat=h.lat; p.lng=h.lng; p.acc=h.acc; p.mark=keepMark; p.comment=keepComment;
+        p.updated=new Date().toISOString();
+        hereLatLng=[h.lat,h.lng]; hereAcc=h.acc; drawHere();
+        savePins(); renderPins(); iw.close(); openInfoWindow=null;
+        fullMap.setCenter({lat:h.lat, lng:h.lng});
+        fullMap.setZoom(Math.max(fullMap.getZoom()||18, 18));
+      });
+    });
+    el.querySelector('[data-act="del"]').addEventListener("click", function(){
+      pins = pins.filter(function(x){ return x!==p; });
+      savePins(); renderPins(); iw.close(); openInfoWindow=null;
+    });
   });
 }
 
@@ -1237,29 +1288,33 @@ function renderHomeLegend(){
   }).join("");
 }
 
-// ── 地図の初期化（全画面・1回だけ）。表示された瞬間に呼ぶ ──
+// ── 地図の初期化（全画面・1回だけ）。表示された瞬間に呼ぶ（API到着後） ──
 function initFullMap(){
-  if(fullMap) return;
-  var esri=esriTiles(), gsi=gsiTiles();
-  fullMap = L.map("fullMap", {scrollWheelZoom:true, maxZoom:21, layers:[esri]})
-    .setView(SAMPLE_CENTER, 18);
-  // 既定＝Esri航空写真／切替で国土地理院 航空写真（D-136）
-  L.control.layers({ "航空写真（詳細・Esri）":esri, "航空写真（国土地理院）":gsi },
-    null, {collapsed:true}).addTo(fullMap);
-  pinLayer = L.layerGroup().addTo(fullMap);
-  hereLayer = L.layerGroup().addTo(fullMap);
+  if(fullMap || !gmapsReady) return;
+  if(!HtmlOverlay) HtmlOverlay = makeHtmlOverlay();
+  fullMap = new google.maps.Map(document.getElementById("fullMap"), {
+    center:{lat:SAMPLE_CENTER[0], lng:SAMPLE_CENTER[1]},
+    zoom:18,
+    mapTypeId:"hybrid",          // 航空写真＋地名ラベル（高解像度・深い拡大が効く）
+    tilt:0,
+    disableDefaultUI:false, mapTypeControl:false, streetViewControl:false,
+    fullscreenControl:false, rotateControl:false,
+    gestureHandling:"greedy",    // 1本指でドラッグ＝スマホで使いやすい
+    clickableIcons:false
+    // maxZoom等は付けない＝Googleが自動で深く拡大できる
+  });
   renderPins();
 
   // 地図を直接タップ＝任意の場所にピン（その家に立ってない時用）
-  fullMap.on("click", function(e){
-    openNewPin(e.latlng.lat, e.latlng.lng, null, false);
+  fullMap.addListener("click", function(e){
+    openNewPin(e.latLng.lat(), e.latLng.lng(), null, false);
   });
 
   // 開いた時に現在地を取って中心へ（精度円つき）
   getHere(function(h){
     hereLatLng=[h.lat,h.lng]; hereAcc=h.acc; drawHere();
-    // 既にピンが有るならピン全体が見えるよう、無ければ現在地へ寄る
-    if(pins.length===0) fullMap.setView(hereLatLng, 18);
+    // 既にピンが有るならその位置は触らず、無ければ現在地へ寄る
+    if(pins.length===0){ fullMap.setCenter({lat:h.lat, lng:h.lng}); fullMap.setZoom(18); }
     var note=document.getElementById("mapNote");
     if(note && h.sample){
       note.innerHTML = '※いまは<b>サンプル位置</b>（本番はHTTPS＝GitHub Pagesで実測）。マークの種類も<b>仮</b>です（あとでオーナーが直します）。';
@@ -1269,15 +1324,17 @@ function initFullMap(){
 
 // ── ホームの小プレビュー（触らせない・自分のピン＋現在地が乗る） ──
 function initHomeMap(){
-  if(homeMap) return;
-  homeMap = L.map("homeMap", {
-    zoomControl:false, attributionControl:false,
-    dragging:false, scrollWheelZoom:false, doubleClickZoom:false,
-    boxZoom:false, keyboard:false, tap:false, touchZoom:false,
-    layers:[esriTiles()]
-  }).setView(SAMPLE_CENTER, 17);
-  homePinLayer = L.layerGroup().addTo(homeMap);
-  homeHereLayer = L.layerGroup().addTo(homeMap);
+  if(homeMap || !gmapsReady) return;
+  if(!HtmlOverlay) HtmlOverlay = makeHtmlOverlay();
+  homeMap = new google.maps.Map(document.getElementById("homeMap"), {
+    center:{lat:SAMPLE_CENTER[0], lng:SAMPLE_CENTER[1]},
+    zoom:17,
+    mapTypeId:"hybrid",
+    tilt:0,
+    disableDefaultUI:true,       // コントロール無し＝見るだけ
+    gestureHandling:"none",      // 指で動かせない（タップで全画面へ）
+    keyboardShortcuts:false, clickableIcons:false
+  });
   renderPins();
   // 現在地が分かればそこを中心に、ピンが有れば全体が入るように
   getHere(function(h){
@@ -1287,38 +1344,48 @@ function initHomeMap(){
 }
 function fitHomeView(){
   if(!homeMap) return;
-  var pts = pins.map(function(p){ return [p.lat,p.lng]; });
-  if(hereLatLng) pts.push(hereLatLng);
-  if(pts.length>=2){ homeMap.fitBounds(pts, {padding:[24,24], maxZoom:18}); }
-  else if(pts.length===1){ homeMap.setView(pts[0], 17); }
+  var pts = pins.map(function(p){ return {lat:p.lat, lng:p.lng}; });
+  if(hereLatLng) pts.push({lat:hereLatLng[0], lng:hereLatLng[1]});
+  if(pts.length>=2){
+    var b = new google.maps.LatLngBounds();
+    pts.forEach(function(pt){ b.extend(pt); });
+    homeMap.fitBounds(b, 24);
+    // 寄りすぎ防止（航空写真は深いので上限を抑える）
+    google.maps.event.addListenerOnce(homeMap, "idle", function(){
+      if(homeMap.getZoom() > 18) homeMap.setZoom(18);
+    });
+  } else if(pts.length===1){ homeMap.setCenter(pts[0]); homeMap.setZoom(17); }
 }
 
-// 画面が表示された瞬間に大きさを取り直す（隠れている間は描けない）
+// 画面が表示された瞬間に大きさを取り直す（隠れている間は描けない）。API未到着なら待つ。
 function onMapShown(){
-  initFullMap();
-  setMapMode("map");   // 開いた時は地図側から（リストはトグルで）
-  startWatch();   // 現在地“表示だけ”リアルタイム追従（記録はタップ時のみ）
-  setTimeout(function(){ if(fullMap){ fullMap.invalidateSize(); renderPins(); drawHere(); } }, 60);
+  whenGmaps(function(){
+    initFullMap();
+    setMapMode("map");   // 開いた時は地図側から（リストはトグルで）
+    startWatch();   // 現在地“表示だけ”リアルタイム追従（記録はタップ時のみ）
+    setTimeout(function(){ if(fullMap){
+      var c = fullMap.getCenter();
+      google.maps.event.trigger(fullMap, "resize");
+      if(c) fullMap.setCenter(c);
+      renderPins(); drawHere();
+    } }, 60);
+  });
 }
 function onHomeShown(){
-  initHomeMap();
-  startWatch();   // ホームのプレビューでも自分の点が動く（表示のみ）
-  setTimeout(function(){ if(homeMap){ homeMap.invalidateSize(); renderPins(); drawHere(); fitHomeView(); } }, 60);
+  whenGmaps(function(){
+    initHomeMap();
+    startWatch();   // ホームのプレビューでも自分の点が動く（表示のみ）
+    setTimeout(function(){ if(homeMap){
+      var c = homeMap.getCenter();
+      google.maps.event.trigger(homeMap, "resize");
+      if(c) homeMap.setCenter(c);
+      renderPins(); drawHere(); fitHomeView();
+    } }, 60);
+  });
 }
 
 // 「📍 ここにピン」ボタン（#map内）
 document.getElementById("addPinBtn").addEventListener("click", placeHereByGps);
-
-// 🛰️ 今このへんをGoogleで見る＝地図の中心（無ければ現在地）の衛星表示を開く。
-// 押した瞬間に最新の中心でhrefを差し替え（target=_blankはそのまま遷移）。
-var satHereBtn = document.getElementById("satHereBtn");
-satHereBtn.addEventListener("click", function(){
-  var lat, lng;
-  if(fullMap){ var c = fullMap.getCenter(); lat=c.lat; lng=c.lng; }
-  else if(hereLatLng){ lat=hereLatLng[0]; lng=hereLatLng[1]; }
-  else { lat=SAMPLE_CENTER[0]; lng=SAMPLE_CENTER[1]; }
-  satHereBtn.setAttribute("href", gSatUrl(lat, lng));
-});
 
 // 🗺️ 地図 / 📋 リスト の切替ボタン
 document.getElementById("segMap").addEventListener("click", function(){ setMapMode("map"); });
