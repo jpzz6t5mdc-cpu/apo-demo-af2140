@@ -37,16 +37,16 @@
     --leaf:#8fae7d;         /* 草の緑（達成・控えめ） */
 
     /* ── 寸法：角丸・余白・文字（部品の基準）── */
-    --r-lg:18px;            /* 大カードの角丸 */
-    --r-md:13px;           /* 中カードの角丸 */
+    --r-lg:16px;            /* 大カードの角丸 */
+    --r-md:12px;           /* 中カードの角丸 */
     --r-sm:9px;            /* バッジ・小物の角丸 */
-    --gap:10px;            /* ゾーン間の余白 */
-    --pad:14px;           /* カード内の余白 */
+    --gap:6px;             /* ゾーン間の余白（圧縮＝隙間ゼロでギュッと） */
+    --pad:9px;            /* カード内の余白（圧縮） */
     --fs-title:15px;      /* 見出し */
     --fs-body:13.5px;     /* 本文 */
     --fs-small:11.5px;    /* 注記・ラベル */
     --fs-num:32px;        /* 主役の数字 */
-    --bar-h:9px;          /* 進捗バーの高さ */
+    --bar-h:10px;         /* 進捗バーの高さ */
   }
 
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%;}
@@ -74,7 +74,8 @@
     height:100dvh; height:100svh;        /* 動的ビューポート優先 */
     max-width:480px; margin:0 auto;
     display:flex; flex-direction:column;
-    padding:env(safe-area-inset-top) 8px 0 8px;
+    /* 下バー削除＝3ゾーンが下端まで使う（safe-areaぶんだけ下に余白） */
+    padding:env(safe-area-inset-top) 6px calc(6px + env(safe-area-inset-bottom)) 6px;
   }
   @supports not (height:100dvh){
     .app{ height:100vh; }                /* 古い端末フォールバック */
@@ -84,19 +85,19 @@
   .stage{
     flex:1 1 auto;
     display:grid;
-    /* ★左帯＝約19%（手描きの18〜20%）／右＝残り */
-    grid-template-columns:19% 1fr;
+    /* ★左帯＝約21%（順位を少し広く）／右＝残り */
+    grid-template-columns:21% 1fr;
     grid-template-rows:1fr;
     gap:var(--gap);
     min-height:0;            /* 子のはみ出し防止 */
-    padding-bottom:var(--gap);
+    /* 下バー削除＝隙間なく下端まで */
   }
 
-  /* 右列を上1/3・下2/3に分ける入れ物 */
+  /* 右列を上＝目標（小さく）・下＝地図（縦に最大化）に分ける入れ物 */
   .right{
     display:grid;
-    /* ★右上 目標＝1／右下 地図＝2（＝下が最大） */
-    grid-template-rows:1fr 2fr;
+    /* ★右上 目標＝auto（中身ぶんだけ）／右下 地図＝1fr（残り全部＝縦最大） */
+    grid-template-rows:auto 1fr;
     gap:var(--gap);
     min-height:0;
   }
@@ -115,18 +116,18 @@
   /* ── 左：縦帯（今月のアポ件数の順位）──────────────── */
   .rank{
     display:flex; flex-direction:column;
-    padding:10px 6px 10px 6px;
+    padding:7px 5px;
     position:relative;
   }
   /* 小さな見出し（"ランキング"の語は出さない＝アイコン＋「今月のアポ」） */
   .rank .cap{
     text-align:center;
     font-family:"Yuji Syuku",serif;
-    font-size:11px; letter-spacing:.06em;
+    font-size:11px; letter-spacing:.04em;
     color:var(--gold);
-    margin-bottom:8px;
+    margin-bottom:6px;
     opacity:.92;
-    line-height:1.35;
+    line-height:1.3;
   }
   .rank .cap .ic{ font-size:13px; display:block; margin-bottom:1px; }
   /* 区切りの細線 */
@@ -134,29 +135,32 @@
     height:1px; margin:2px 2px 8px;
     background:linear-gradient(90deg,transparent,var(--card-edge),transparent);
   }
-  /* 順位の行（小さく数人ぶん＝今月のアポ件数） */
-  .rank ol{ list-style:none; display:flex; flex-direction:column; gap:5px; }
+  /* 順位の行＝縦いっぱいを均等に埋める（隙間ゼロでギュッと） */
+  .rank ol{ list-style:none; display:flex; flex-direction:column; gap:4px; flex:1 1 auto; min-height:0; }
   .rank li{
     display:flex; align-items:center; gap:4px;
-    font-size:11px; color:var(--ink-soft);
+    font-size:12px; color:var(--ink-soft);
     background:rgba(255,250,238,.02);
     border:1px solid rgba(58,52,42,.6);
     border-radius:var(--r-sm);
-    padding:4px 5px;
+    padding:0 5px;
+    flex:1 1 0; min-height:0;     /* 行が縦を均等に分け合う＝白い隙間を残さない */
   }
   .rank li .pos{
     font-feature-settings:"tnum";
-    color:var(--ink-faint); min-width:13px; text-align:center; font-size:10.5px;
+    color:var(--ink-faint); min-width:13px; text-align:center; font-size:11px;
   }
   .rank li .who{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .rank li .cnt{ color:var(--ink-faint); font-size:10px; font-feature-settings:"tnum"; }
+  /* 件数＝主役の数字。パッと見で分かるよう大きめ */
+  .rank li .cnt{ color:var(--ink-soft); font-size:15px; font-weight:700; font-feature-settings:"tnum"; }
   /* 自分の行＝そっと朱で印（責めない・主役は本人） */
   .rank li.me{
     background:linear-gradient(180deg, rgba(217,138,91,.14), rgba(217,138,91,.04));
     border-color:rgba(217,138,91,.45);
     color:var(--vermilion-soft);
   }
-  .rank li.me .pos,.rank li.me .cnt{ color:var(--vermilion-soft); }
+  .rank li.me .pos{ color:var(--vermilion-soft); }
+  .rank li.me .cnt{ color:var(--vermilion-soft); }
 
   /* ── 右上：目標（〜13時／〜17時／〜19時の3段・話した数）──────── */
   .goal{
@@ -172,6 +176,40 @@
     color:var(--gold); letter-spacing:.06em;
   }
   .goal .h .sub{ font-size:var(--fs-small); color:var(--ink-faint); }
+
+  /* ── ① ホームの目標＝達成の数字を主役級に大きく（パッと見で「今/目標」）──
+     特大「5/10」＋添えの「あと5」。時間帯ラベル(〜19時)は小さく。余白を数字で埋める。 */
+  .goal .bignow{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    text-align:center; padding:2px 0;
+  }
+  .goal .bignow .when{
+    flex:0 0 auto; font-size:11px; color:var(--ink-faint);
+    letter-spacing:.02em; line-height:1.2; max-width:46px;
+  }
+  .goal .bignow .figs{ flex:0 0 auto; line-height:1; }
+  /* 特大の達成数字「5/10」＝余白を埋める主役 */
+  .goal .bignow .big{
+    font-feature-settings:"tnum"; font-weight:700;
+    font-size:clamp(40px, 13vw, 60px); line-height:.96;
+    color:var(--vermilion-soft);
+    text-shadow:0 2px 14px rgba(217,138,91,.28);
+  }
+  .goal .bignow .big .of{ color:var(--ink-faint); font-size:.52em; font-weight:600; }
+  /* 添えの「あと5」/「達成」＝小さく下に */
+  .goal .bignow .left{
+    margin-top:5px; font-size:13px; color:var(--ink-soft); letter-spacing:.02em;
+  }
+  .goal .bignow .left b{ color:var(--vermilion-soft); font-weight:700; font-size:15px; }
+  /* 進捗の細バー＝大数字の下に薄く（パッと見の補助） */
+  .goal .bignow + .bar{ margin-top:10px; }
+  /* 達成済みの色（静かに金/緑） */
+  .goal .bignow.done .big{ color:var(--leaf); text-shadow:0 2px 14px rgba(143,174,125,.26); }
+  .goal .bignow.done .left b{ color:var(--leaf); }
+  .goal .bignow.done + .bar > i{
+    background:linear-gradient(90deg, var(--leaf), var(--gold));
+    box-shadow:0 0 8px rgba(143,174,125,.4);
+  }
   /* 3段の時間チェックポイント */
   .goal .steps{ display:flex; flex-direction:column; gap:6px; }
   .goal .step{
@@ -291,26 +329,8 @@
     100%{ box-shadow:0 0 0 0 rgba(143,174,125,0); }
   }
 
-  /* ── 下：細いバー＝入力プレースホルダ（手描きに無い）──── */
-  .inputbar{
-    flex:0 0 auto;
-    padding:0 2px calc(8px + env(safe-area-inset-bottom)) 2px;
-  }
-  .inputbar .btn{
-    width:100%;
-    display:flex; align-items:center; justify-content:center; gap:8px;
-    background:linear-gradient(180deg, rgba(217,138,91,.14), rgba(217,138,91,.05));
-    border:1px dashed rgba(217,138,91,.5);   /* 破線＝まだ仮置き */
-    border-radius:var(--r-md);
-    color:var(--vermilion-soft);
-    font-size:15px; font-family:"Zen Kurenaido",sans-serif;
-    padding:13px 14px;
-    cursor:pointer;
-  }
-  .inputbar .note{
-    text-align:center; font-size:10.5px; color:var(--ink-faint);
-    margin-top:5px; opacity:.8; letter-spacing:.02em;
-  }
+  /* （下の「ここにピン」入力バーは削除＝地図タップでピンが付くので不要。
+     空いた縦は順位＝左帯と地図＝右下に分配。地図タップ記録のフローは温存。） */
 
   /* ============================================================
      画面切替（SPA風）＝同一HTML内でホーム⇄専門画面を出し分け。
@@ -544,6 +564,94 @@
     opacity:0; visibility:hidden; transition:opacity .26s ease, visibility .26s;
   }
   .homepick-veil.show{ opacity:1; visibility:visible; }
+
+  /* ── ③ 「🏷️ 種類」ボタン（道具帯・墨地に金の控えめ） ── */
+  .kinds-btn{
+    display:inline-flex; align-items:center; gap:5px;
+    background:linear-gradient(180deg, rgba(255,250,238,.05), rgba(0,0,0,.05));
+    border:1px solid var(--card-edge); border-radius:var(--r-md);
+    color:var(--gold); font-size:13px; font-family:"Zen Kurenaido",sans-serif;
+    padding:9px 12px; cursor:pointer; transition:transform .12s ease;
+  }
+  .kinds-btn:active{ transform:scale(.96); }
+
+  /* ── ③ ピンの種類を編集するオーバーレイ（下から立つシート・型はhomepick流用） ── */
+  .kinds-veil{
+    position:fixed; inset:0; z-index:1290; background:rgba(0,0,0,.45);
+    opacity:0; visibility:hidden; transition:opacity .26s ease, visibility .26s;
+  }
+  .kinds-veil.show{ opacity:1; visibility:visible; }
+  .kinds{
+    position:fixed; left:0; right:0; bottom:0; z-index:1300;
+    max-width:480px; margin:0 auto; max-height:82dvh; max-height:82svh;
+    display:flex; flex-direction:column;
+    background:linear-gradient(180deg, var(--card), var(--paper2));
+    border:1px solid var(--card-edge); border-bottom:none;
+    border-radius:var(--r-lg) var(--r-lg) 0 0;
+    box-shadow:0 -16px 40px -18px rgba(0,0,0,.85);
+    padding:13px 14px calc(13px + env(safe-area-inset-bottom));
+    transform:translateY(110%); transition:transform .26s ease;
+  }
+  .kinds.show{ transform:translateY(0); }
+  .kinds-head{ display:flex; align-items:center; justify-content:space-between; }
+  .kinds-head .ttl{ font-family:"Yuji Syuku",serif; font-size:15px; color:var(--gold); }
+  .kinds-x{
+    background:transparent; border:none; cursor:pointer; color:var(--ink-soft);
+    font-size:16px; padding:4px 6px; line-height:1;
+  }
+  .kinds-meta{ font-size:11px; color:var(--ink-faint); margin:3px 0 9px; line-height:1.4; }
+  .kinds-list{ flex:1 1 auto; min-height:0; overflow:auto; display:flex; flex-direction:column; gap:8px; }
+  /* 1行＝アイコン＋名前＋色チップ＋（編集/削除） */
+  .kindrow{
+    display:flex; align-items:center; gap:9px;
+    background:rgba(255,250,238,.02); border:1px solid rgba(58,52,42,.6);
+    border-radius:var(--r-md); padding:8px 10px;
+  }
+  .kindrow .ic{ font-size:20px; line-height:1; flex:0 0 auto; width:26px; text-align:center;
+    text-shadow:0 0 2px rgba(0,0,0,.5); }
+  .kindrow .nm{ flex:1; min-width:0; font-size:13.5px; color:var(--ink);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .kindrow .sw{ flex:0 0 auto; width:16px; height:16px; border-radius:50%;
+    border:1px solid rgba(255,255,255,.25); }
+  .kindrow .acts{ display:flex; gap:6px; flex:0 0 auto; }
+  .kindrow .acts button{
+    border:1.5px solid var(--card-edge); background:rgba(255,250,238,.03); color:var(--ink-soft);
+    border-radius:8px; padding:6px 9px; font-size:11.5px; font-family:inherit; cursor:pointer;
+  }
+  .kindrow .acts .edit{ border-color:rgba(217,138,91,.5); color:var(--vermilion-soft); }
+  .kindrow .acts .del{ border-color:rgba(217,138,91,.5); color:#e6a09a; }
+  .kinds-add{
+    flex:0 0 auto; margin-top:10px; width:100%;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:linear-gradient(180deg, var(--vermilion), var(--vermilion-soft));
+    border:1px solid rgba(217,138,91,.6); border-radius:var(--r-md);
+    color:#231d15; font-weight:700; font-size:14px; font-family:"Zen Kurenaido",sans-serif;
+    padding:11px 14px; cursor:pointer;
+  }
+  .kinds-add:active{ transform:scale(.985); }
+  /* 種類の追加/編集フォーム（行を開いて入力） */
+  .kindedit{
+    background:rgba(255,250,238,.03); border:1px solid var(--card-edge);
+    border-radius:var(--r-md); padding:10px 11px; display:flex; flex-direction:column; gap:8px;
+  }
+  .kindedit .frow{ display:flex; align-items:center; gap:8px; }
+  .kindedit label{ font-size:11px; color:var(--ink-faint); flex:0 0 auto; width:40px; }
+  .kindedit input[type=text]{
+    flex:1; min-width:0; background:rgba(255,250,238,.05); color:var(--ink);
+    border:1px solid var(--card-edge); border-radius:8px; padding:8px 9px;
+    font-family:inherit; font-size:13.5px;
+  }
+  .kindedit input.icon{ flex:0 0 auto; width:52px; text-align:center; font-size:18px; }
+  .kindedit input[type=color]{
+    flex:0 0 auto; width:42px; height:34px; padding:0; border:1px solid var(--card-edge);
+    border-radius:8px; background:transparent; cursor:pointer;
+  }
+  .kindedit .frow.btns{ gap:8px; margin-top:2px; }
+  .kindedit .frow.btns button{
+    flex:1; border:1.5px solid var(--card-edge); background:rgba(255,250,238,.03); color:var(--ink-soft);
+    border-radius:8px; padding:9px 8px; font-size:13px; font-family:inherit; cursor:pointer;
+  }
+  .kindedit .frow.btns .save{ border-color:var(--vermilion); background:rgba(217,138,91,.18); color:var(--vermilion-soft); font-weight:700; }
 </style>
 </head>
 <body>
@@ -589,12 +697,6 @@
     </div>
   </div>
 
-  <!-- ====== 下：入力バー＝ここにピン（記録）＝ホームから2タップで1軒記録 ====== -->
-  <div class="inputbar">
-    <div class="btn" id="recBtn"><span>📍</span><span>ここにピン（記録）</span></div>
-    <div class="note">押す→現在地にピン→マークを選ぶ＝記録（2タップ）</div>
-  </div>
-
 </div>
 
 <!-- ====== ホームから1軒記録：現在地ピン＋マークを選ぶシート（#mapと同じ保存先） ====== -->
@@ -607,6 +709,18 @@
   <div class="row" id="homePickRow">
     <span class="mini" data-act="cancel">やめる</span>
   </div>
+</div>
+
+<!-- ====== ③ ピンの種類（マーク）を 追加/編集/削除 するオーバーレイ ====== -->
+<div class="kinds-veil" id="kindsVeil"></div>
+<div class="kinds" id="kindsSheet" aria-label="ピンの種類（追加・編集・削除）">
+  <div class="kinds-head">
+    <span class="ttl">🏷️ ピンの種類</span>
+    <button class="kinds-x" id="kindsClose" type="button" aria-label="閉じる">✕</button>
+  </div>
+  <div class="kinds-meta">アイコン＋名前＋色で並びます。追加するとピンを打つ時の選択にすぐ出ます。</div>
+  <div class="kinds-list" id="kindsList"><!-- JSで種類を並べる --></div>
+  <button class="kinds-add" id="kindsAdd" type="button">＋ 新しい種類</button>
 </div>
 
 <!-- ====== 🏆 順位の専門画面（フル順位表） ====== -->
@@ -646,6 +760,7 @@
         <button id="segList" type="button">📋 リスト</button>
       </span>
       <button class="map-btn" id="addPinBtn">📍 ここにピン</button>
+      <button class="kinds-btn" id="kindsBtn" type="button" aria-label="ピンの種類を編集">🏷️ 種類</button>
       <span class="map-tip" id="addPinTip">家の前で「ここにピン」→マークを選ぶ＝2タップ。地図は<b>高画質の航空写真</b>。指でつまんで深く拡大できます。</span>
     </div>
     <!-- 真ん中：本物の航空写真（Google Maps hybrid＝航空写真＋地名／現在地＋精度円＋自分のピン） -->
@@ -725,7 +840,9 @@ function stepHtml(goal, now, isLive){
        + '</div>';
 }
 
-// --- ホームの目標＝「今の時間帯のぶんだけ」1段（19時以降はおつかれさま） ---
+// --- ① ホームの目標＝「今の時間帯のぶんだけ」を“達成の数字を主役級に大きく”表示
+//        特大「5/10」＋添えの「あと5」＋時間帯ラベルは小さく＋細い進捗バー。
+//        （19時以降は静かに締める＝同じ大数字の型で「話した数」を主役に） ---
 function renderGoalHome(d){
   var now = d.talkedNow;
   var goals = d.timeGoals;
@@ -734,15 +851,33 @@ function renderGoalHome(d){
   var box = document.getElementById("gStepNow");
 
   if (h >= goals[goals.length - 1].hourEnd){
-    // 19時以降＝静かに締める
-    box.innerHTML = '<div class="step done">'
-      + '<span class="when">きょう</span>'
-      + '<span class="mid"><span class="num">話した数 <b>' + now + '</b> ・ おつかれさま</span></span>'
+    // 19時以降＝静かに締める（達成扱いの色で大きく）
+    box.innerHTML = ''
+      + '<div class="bignow done">'
+      +   '<span class="when">きょう</span>'
+      +   '<span class="figs">'
+      +     '<span class="big">' + now + '</span>'
+      +     '<span class="left">話した数 ・ おつかれさま</span>'
+      +   '</span>'
       + '</div>';
     return;
   }
-  // 今の段だけ（必ず live で強調）
-  box.innerHTML = stepHtml(goals[band], now, true);
+  // 今の段＝特大の達成数字「now/target」＋あとnこ＋細バー
+  var g = goals[band];
+  var target = g.target;
+  var done = now >= target;
+  var pct  = target > 0 ? Math.min(100, Math.round(now / target * 100)) : 0;
+  var left = Math.max(0, target - now);
+  var leftHtml = done ? '達成' : 'あと <b>' + left + '</b>';
+  box.innerHTML = ''
+    + '<div class="bignow' + (done ? ' done' : '') + '">'
+    +   '<span class="when">' + g.until + '</span>'
+    +   '<span class="figs">'
+    +     '<span class="big">' + now + '<span class="of">/' + target + '</span></span>'
+    +     '<span class="left">' + leftHtml + '</span>'
+    +   '</span>'
+    + '</div>'
+    + '<span class="bar"><i style="width:' + pct + '%"></i></span>';
 }
 
 // --- 目標の専門画面＝3段すべて。今いる段を強調 ---
@@ -795,20 +930,9 @@ function renderRankFull(d){
 // --- ③ ホームから1軒記録：#mapに入らず現在地にピン→マークを選ぶ（2タップ） ---
 // 保存先・マーク・関数は #map と同じ（apo.pins.v1 / 同じMARKS / savePins / renderPins を流用＝二重実装しない）
 var homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false, pending:false };
-function openHomePick(){
-  homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false, pending:false };
-  var sheet = document.getElementById("homePick");
-  var veil  = document.getElementById("homePickVeil");
-  var meta  = document.getElementById("homePickMeta");
-  var memo  = document.getElementById("homePickMemo");
-  // チップ＝#mapと同じ仮マーク一覧
-  document.getElementById("homePickChips").innerHTML = MARKS.map(function(mk){
-    return '<span class="chip" data-mk="'+mk.key+'">'+mk.label+'</span>';
-  }).join("");
-  memo.value = ""; memo.style.display = "none";
-  meta.textContent = "現在地を確認中…";
-  veil.classList.add("show"); sheet.classList.add("show");
-  // チップ選択＝マークを選ぶ＝記録。GPSが遅くても“選んだマークを覚えて”位置が来たら自動で確定する
+// ホームのマーク選びチップの結線（種類の追加/編集で貼り直す時も使う）
+// チップ選択＝マークを選ぶ＝記録。GPSが遅くても“選んだマークを覚えて”位置が来たら自動で確定する
+function wireHomePickChips(){
   document.getElementById("homePickChips").querySelectorAll(".chip").forEach(function(b){
     b.addEventListener("click", function(){
       document.getElementById("homePickChips").querySelectorAll(".chip").forEach(function(x){ x.classList.remove("on"); });
@@ -822,6 +946,21 @@ function openHomePick(){
       }
     });
   });
+}
+function openHomePick(){
+  homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false, pending:false };
+  var sheet = document.getElementById("homePick");
+  var veil  = document.getElementById("homePickVeil");
+  var meta  = document.getElementById("homePickMeta");
+  var memo  = document.getElementById("homePickMemo");
+  // チップ＝#mapと同じ仮マーク一覧
+  document.getElementById("homePickChips").innerHTML = MARKS.map(function(mk){
+    return '<span class="chip" data-mk="'+mk.key+'">'+mk.label+'</span>';
+  }).join("");
+  memo.value = ""; memo.style.display = "none";
+  meta.textContent = "現在地を確認中…";
+  veil.classList.add("show"); sheet.classList.add("show");
+  wireHomePickChips();
   // 現在地を取る（#mapと同じ getHere・記録時のGPS）
   getHere(function(h){
     homePickState.lat=h.lat; homePickState.lng=h.lng; homePickState.acc=h.acc; homePickState.sample=h.sample;
@@ -910,8 +1049,10 @@ function goTo(name){
    ・更新（更新時もGPSを取る）：マーク変更／コメント／📍位置を取り直す／削除
    ========================================================================= */
 
-// ── 仮のマーク一覧（あとでオーナーが直す前提。色は管理マップと同系統） ──
-var MARKS = [
+// ── ③ ピンの種類（マーク）一覧＝追加/編集/削除できる。
+//    既存6種を初期デフォルトに、localStorage(apo.marks.v1)へ保存。
+//    ピンの mark キー（rusu/apo等）は不変＝既存ピンと互換。 ──
+var DEFAULT_MARKS = [
   {key:"rusu",     icon:"🏠", color:"#8a93ad", label:"🏠留守"},
   {key:"kotowari", icon:"🚫", color:"#ff6b6b", label:"🚫断られた"},
   {key:"hanaseta", icon:"💬", color:"#ffc857", label:"💬話せた"},
@@ -919,7 +1060,29 @@ var MARKS = [
   {key:"apo",      icon:"🎯", color:"#3ddc97", label:"🎯アポ獲得"},
   {key:"saihou",   icon:"🔁", color:"#cbb27a", label:"🔁再訪"}
 ];
-function markOf(key){ for(var i=0;i<MARKS.length;i++){ if(MARKS[i].key===key) return MARKS[i]; } return MARKS[2]; }
+var LS_MARKS = "apo.marks.v1";
+var MARKS = [];
+function loadMarks(){
+  try{
+    var raw = JSON.parse(localStorage.getItem(LS_MARKS) || "null");
+    if(Array.isArray(raw) && raw.length){
+      // 形を整える（icon/color/labelが欠けても落ちないよう既定で補う）
+      MARKS = raw.filter(function(m){ return m && m.key; }).map(function(m){
+        return { key:String(m.key), icon:m.icon||"📍", color:m.color||"#cbb27a",
+                 label:m.label || ((m.icon||"")+(m.name||m.key)) };
+      });
+    } else {
+      MARKS = DEFAULT_MARKS.map(function(m){ return {key:m.key,icon:m.icon,color:m.color,label:m.label}; });
+    }
+  }catch(e){
+    MARKS = DEFAULT_MARKS.map(function(m){ return {key:m.key,icon:m.icon,color:m.color,label:m.label}; });
+  }
+}
+function saveMarks(){ try{ localStorage.setItem(LS_MARKS, JSON.stringify(MARKS)); }catch(e){} }
+function markOf(key){ for(var i=0;i<MARKS.length;i++){ if(MARKS[i].key===key) return MARKS[i]; }
+  return MARKS[0] || DEFAULT_MARKS[2]; }
+// 新しい種類のユニークなkeyを作る
+function newMarkKey(){ return "mk" + Date.now().toString(36) + Math.floor(Math.random()*1000).toString(36); }
 
 // ── localStorage（各ピン＝{lat,lng,acc,mark,comment,created,updated}） ──
 var LS_PINS = "apo.pins.v1";
@@ -1304,12 +1467,114 @@ function openEditPin(p){
 function renderHomeLegend(){
   var box = document.getElementById("homeLegend");
   if(!box) return;
-  // 場所を取らないので主要4つだけ小さく
-  var show = ["hanaseta","mikomi","apo","rusu"];
-  box.innerHTML = show.map(function(k){
-    var mk = markOf(k);
+  // 小さく＝先頭4種だけ（種類リストの変更にも追従）
+  box.innerHTML = MARKS.slice(0,4).map(function(mk){
     return '<span><i class="dot" style="background:'+mk.color+'"></i>'+mk.icon+'</span>';
   }).join("");
+}
+
+/* ── ③ ピンの種類（マーク）の 一覧/追加/編集/削除 ──────────────────
+   ・MARKS（apo.marks.v1）を編集。ピンの mark キーは保持。
+   ・変わったら：ピンの再描画・凡例・開いているチップ系（homePick）に即反映。 */
+function refreshMarkConsumers(){
+  saveMarks();
+  renderHomeLegend();
+  if(typeof renderPins === "function") renderPins();   // 地図ピン＆リストの色/アイコン更新
+  // ホームのマーク選びシートが開いていればチップを貼り直す
+  var hpChips = document.getElementById("homePickChips");
+  if(hpChips && document.getElementById("homePick").classList.contains("show")){
+    hpChips.innerHTML = MARKS.map(function(mk){
+      return '<span class="chip'+(mk.key===homePickState.mark?" on":"")+'" data-mk="'+mk.key+'">'+mk.label+'</span>';
+    }).join("");
+    wireHomePickChips();
+  }
+}
+// ラベルは「アイコン＋名前」で組み立てる（chip/凡例/リストはlabelを使う）
+function buildLabel(icon, name){ return (icon||"") + (name||""); }
+// labelから名前だけ取り出す（先頭の絵文字を除く＝編集フォームの初期値用）
+function nameFromLabel(mk){
+  if(!mk) return "";
+  var lbl = mk.label||"", ic = mk.icon||"";
+  return (ic && lbl.indexOf(ic)===0) ? lbl.slice(ic.length) : lbl;
+}
+
+function openKinds(){
+  document.getElementById("kindsVeil").classList.add("show");
+  document.getElementById("kindsSheet").classList.add("show");
+  renderKindsList();
+}
+function closeKinds(){
+  document.getElementById("kindsVeil").classList.remove("show");
+  document.getElementById("kindsSheet").classList.remove("show");
+}
+// 種類の一覧を描く
+function renderKindsList(){
+  var box = document.getElementById("kindsList");
+  if(!box) return;
+  box.innerHTML = MARKS.map(function(mk,i){
+    return '<div class="kindrow" data-i="'+i+'">'
+      +   '<span class="ic" style="color:'+esc(mk.color)+'">'+esc(mk.icon)+'</span>'
+      +   '<span class="nm">'+esc(nameFromLabel(mk))+'</span>'
+      +   '<span class="sw" style="background:'+esc(mk.color)+'"></span>'
+      +   '<span class="acts">'
+      +     '<button class="edit" type="button" data-edit="'+i+'">✏️</button>'
+      +     '<button class="del" type="button" data-del="'+i+'">🗑️</button>'
+      +   '</span>'
+      + '</div>';
+  }).join("");
+  box.querySelectorAll("button[data-edit]").forEach(function(b){
+    b.addEventListener("click", function(){ openKindEdit(parseInt(b.getAttribute("data-edit"),10)); });
+  });
+  box.querySelectorAll("button[data-del]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var i = parseInt(b.getAttribute("data-del"),10);
+      var mk = MARKS[i]; if(!mk) return;
+      if(MARKS.length<=1){ alert("最後の1種類は消せません（1つは残してください）。"); return; }
+      if(!confirm("「"+nameFromLabel(mk)+"」を消しますか？\n（このマークで記録済みのピンは既定の色/アイコンで表示されます）")) return;
+      MARKS.splice(i,1);
+      refreshMarkConsumers();
+      renderKindsList();
+    });
+  });
+}
+// 追加/編集フォームを行として開く（index<0=新規）
+function openKindEdit(index){
+  var isNew = (index<0);
+  var mk = isNew ? {key:"", icon:"📍", color:"#cbb27a", label:""} : MARKS[index];
+  var name = isNew ? "" : nameFromLabel(mk);
+  var box = document.getElementById("kindsList");
+  // 既存の編集フォームを閉じてから開く（1つだけ）
+  var prev = box.querySelector(".kindedit"); if(prev) renderKindsList();
+  var form = document.createElement("div");
+  form.className = "kindedit";
+  form.innerHTML = ''
+    + '<div class="frow">'
+    +   '<input class="icon" type="text" maxlength="2" value="'+esc(mk.icon||"")+'" aria-label="アイコン（絵文字）">'
+    +   '<input class="name" type="text" value="'+esc(name)+'" placeholder="名前（例：話せた）" aria-label="名前">'
+    +   '<input class="col" type="color" value="'+(/^#[0-9a-fA-F]{6}$/.test(mk.color)?mk.color:"#cbb27a")+'" aria-label="色">'
+    + '</div>'
+    + '<div class="frow btns">'
+    +   '<button class="cancel" type="button">やめる</button>'
+    +   '<button class="save" type="button">'+(isNew?"追加":"保存")+'</button>'
+    + '</div>';
+  if(isNew) box.appendChild(form);
+  else { var row = box.querySelector('.kindrow[data-i="'+index+'"]'); if(row) box.replaceChild(form, row); else box.appendChild(form); }
+  form.scrollIntoView({block:"nearest"});
+  form.querySelector(".name").focus();
+  form.querySelector(".cancel").addEventListener("click", renderKindsList);
+  form.querySelector(".save").addEventListener("click", function(){
+    var icon = form.querySelector(".icon").value.trim() || "📍";
+    var nm   = form.querySelector(".name").value.trim();
+    var col  = form.querySelector(".col").value || "#cbb27a";
+    if(!nm){ alert("名前を入れてください。"); return; }
+    if(isNew){
+      MARKS.push({ key:newMarkKey(), icon:icon, color:col, label:buildLabel(icon,nm) });
+    } else {
+      mk.icon=icon; mk.color=col; mk.label=buildLabel(icon,nm);   // keyは保持＝既存ピン互換
+    }
+    refreshMarkConsumers();
+    renderKindsList();
+  });
 }
 
 // ── 地図の初期化（全画面・1回だけ）。表示された瞬間に呼ぶ（API到着後） ──
@@ -1446,14 +1711,23 @@ document.getElementById("homeMapBig").addEventListener("click", function(e){
 document.getElementById("homePickVeil").addEventListener("click", closeHomePick);
 wireHomePickRow();
 
+// ③ 「🏷️ 種類」＝ピンの種類の追加/編集/削除オーバーレイ
+document.getElementById("kindsBtn").addEventListener("click", openKinds);
+document.getElementById("kindsClose").addEventListener("click", closeKinds);
+document.getElementById("kindsVeil").addEventListener("click", closeKinds);
+document.getElementById("kindsAdd").addEventListener("click", function(){ openKindEdit(-1); });
+
 // 描画
+loadMarks();   // ③ ピンの種類（apo.marks.v1）を先に読む＝チップ/凡例/リストの基
 loadPins();
 renderHomeLegend();
 renderGoalHome(data);
 renderGoalAll(data);
 renderRankHome(data);
 renderRankFull(data);
-document.getElementById("recBtn").addEventListener("click", onRec);
+// 下の「ここにピン」バーは削除済み（地図タップで記録）。残っていれば結ぶ＝後方互換。
+var _recBtn = document.getElementById("recBtn");
+if(_recBtn) _recBtn.addEventListener("click", onRec);
 
 // 全ての data-go（3ゾーン＋戻るボタン）にタップ遷移を結ぶ
 var navEls = document.querySelectorAll("[data-go]");
