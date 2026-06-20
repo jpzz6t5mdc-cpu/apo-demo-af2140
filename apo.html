@@ -389,15 +389,11 @@
   /* 一定より縮小したら＝コメントを隠してマーク(ピン)だけにする */
   body.pins-only .pin-label{ display:none; }
   /* 現在地マーカー（脈打つ朱／青ではなく和の差し色）＝Overlayで描く */
+  /* 現在地＝スポーツカー🏎️（旧：緑の点＋パルス。倍の大きさ＝28px） */
   .here-dot{
-    width:14px; height:14px; border-radius:50%; transform:translate(-50%,-50%);
-    background:var(--leaf); border:2px solid #fff; box-shadow:0 0 0 0 rgba(143,174,125,.6);
-    animation:pulse 1.8s ease-out infinite;
-  }
-  @keyframes pulse{
-    0%{ box-shadow:0 0 0 0 rgba(143,174,125,.55); }
-    70%{ box-shadow:0 0 0 12px rgba(143,174,125,0); }
-    100%{ box-shadow:0 0 0 0 rgba(143,174,125,0); }
+    transform:translate(-50%,-50%);
+    font-size:28px; line-height:1; pointer-events:none;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));
   }
 
   /* （下の「ここにピン」入力バーは削除＝地図タップでピンが付くので不要。
@@ -1534,7 +1530,7 @@ function drawHere(){
         strokeColor:"#cbb27a", strokeOpacity:.8, strokeWeight:1.5,
         fillColor:"#cbb27a", fillOpacity:.10, clickable:false, zIndex:1 }));
     }
-    var dot = document.createElement("div"); dot.className = "here-dot";
+    var dot = document.createElement("div"); dot.className = "here-dot"; dot.textContent = "🏎";
     var ov = new HtmlOverlay(ll, dot, null); ov.setMap(o.m);
     o.arr.push(ov);
   });
