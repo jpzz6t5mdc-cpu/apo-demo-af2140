@@ -344,23 +344,23 @@
     text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px rgba(0,0,0,.6); }
   /* ピン＝丸いバッジ（色＝状態／中の文字＝メーカーのイニシャル）。航空写真でも沈まない白フチ＋影＋尾 */
   .pin-badge{
-    position:relative; width:30px; height:30px; border-radius:50%;
+    position:relative; width:16px; height:16px; border-radius:50%;
     transform:translate(-50%,-50%);
     display:flex; align-items:center; justify-content:center;
     color:#fff; font-weight:800; line-height:1;
-    font-family:"Zen Kurenaido","Hiragino Sans",sans-serif;
-    border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,.55);
-    text-shadow:0 0 2px rgba(0,0,0,.45);
+    font-family:"Hiragino Sans",-apple-system,sans-serif;
+    border:1.5px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.55);
+    text-shadow:0 0 2px rgba(0,0,0,.5);
   }
   .pin-badge .lt{ display:block; }
-  .pin-badge.s1 .lt{ font-size:14px; }   /* 1字 */
-  .pin-badge.s2 .lt{ font-size:11px; }   /* 2字 */
-  .pin-badge.s3 .lt{ font-size:9px; }    /* 3字以上 */
+  .pin-badge.s1 .lt{ font-size:10px; }   /* 1字 */
+  .pin-badge.s2 .lt{ font-size:8px; }    /* 2字 */
+  .pin-badge.s3 .lt{ font-size:6.5px; }  /* 3字以上 */
   /* 尾（下向きの細い三角）＝ピンらしさ */
   .pin-badge::after{
-    content:""; position:absolute; left:50%; bottom:-6px; transform:translateX(-50%);
-    border-left:4px solid transparent; border-right:4px solid transparent;
-    border-top:7px solid #fff;
+    content:""; position:absolute; left:50%; bottom:-4px; transform:translateX(-50%);
+    border-left:3px solid transparent; border-right:3px solid transparent;
+    border-top:5px solid #fff;
   }
   /* status=="" の新規ピン＝中空（塗らない・点線枠）でひと目で未対応とわかる */
   .pin-badge.is-new{
@@ -1954,5 +1954,5 @@ for (var n = 0; n < navEls.length; n++){
 window.addEventListener("hashchange", syncFromHash);
 syncFromHash();
 </script>
-<script>(function(){var L=null;function p(){fetch("ver.txt?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.text();}).then(function(t){if(L===null){L=t;}else if(t!==L){location.reload(true);}}).catch(function(){});}setInterval(p,5000);})();</script></body>
+</body>
 </html>
