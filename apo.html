@@ -309,6 +309,32 @@
   /* マーク（絵文字アイコン）＝航空写真の上でも沈まない白フチ。Markerのlabelに使う */
   .pinmark{ font-size:22px; line-height:1; text-align:center;
     text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px rgba(0,0,0,.6); }
+  /* ピン＝丸いバッジ（色＝状態／中の文字＝メーカーのイニシャル）。航空写真でも沈まない白フチ＋影＋尾 */
+  .pin-badge{
+    position:relative; width:30px; height:30px; border-radius:50%;
+    transform:translate(-50%,-50%);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:800; line-height:1;
+    font-family:"Zen Kurenaido","Hiragino Sans",sans-serif;
+    border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,.55);
+    text-shadow:0 0 2px rgba(0,0,0,.45);
+  }
+  .pin-badge .lt{ display:block; }
+  .pin-badge.s1 .lt{ font-size:14px; }   /* 1字 */
+  .pin-badge.s2 .lt{ font-size:11px; }   /* 2字 */
+  .pin-badge.s3 .lt{ font-size:9px; }    /* 3字以上 */
+  /* 尾（下向きの細い三角）＝ピンらしさ */
+  .pin-badge::after{
+    content:""; position:absolute; left:50%; bottom:-6px; transform:translateX(-50%);
+    border-left:4px solid transparent; border-right:4px solid transparent;
+    border-top:7px solid #fff;
+  }
+  /* status=="" の新規ピン＝中空（塗らない・点線枠）でひと目で未対応とわかる */
+  .pin-badge.is-new{
+    background:rgba(20,18,15,.35)!important; border-style:dashed; color:rgba(255,255,255,.9);
+    box-shadow:0 1px 4px rgba(0,0,0,.4);
+  }
+  .pin-badge.is-new::after{ border-top-color:rgba(255,255,255,.85); }
   /* ピン横の常時ラベル（コメントが有る時だけ・読めるよう墨地に白フチ）＝下に出すOverlay */
   .pin-label{
     background:rgba(26,24,21,.84); color:var(--ink); border:1px solid rgba(240,233,218,.5);
@@ -446,6 +472,19 @@
     padding:9px 14px; cursor:pointer; transition:transform .12s ease;
   }
   .map-btn:active{ transform:scale(.96); }
+  /* 地図に浮かせる丸ボタン（現在地に戻る／ストリートビュー）＝右下に縦並び */
+  #map .map-fabs{
+    position:absolute; right:12px; bottom:14px; z-index:5;
+    display:flex; flex-direction:column; gap:9px;
+  }
+  #map .map-fab{
+    width:44px; height:44px; border-radius:50%; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:19px;
+    background:linear-gradient(180deg, var(--card), var(--paper2));
+    border:1px solid var(--card-edge); color:var(--ink);
+    box-shadow:0 4px 12px -4px rgba(0,0,0,.7); transition:transform .12s ease;
+  }
+  #map .map-fab:active{ transform:scale(.93); }
   .map-tip{ font-size:11px; color:var(--ink-faint); flex:1; min-width:120px; line-height:1.35; }
   /* 下の注記＝「これは仮のマーク一覧」 */
   #map .map-note{
@@ -466,6 +505,31 @@
   .markform .chip.on{
     border-color:var(--vermilion); background:rgba(217,138,91,.18); color:var(--vermilion-soft); font-weight:700;
   }
+  /* ── 状態／メーカー／エコキュートのピッカー（markform・homepick 共通） ── */
+  .pgroup{ margin-bottom:8px; }
+  .pgroup > .glabel{ font-size:11px; color:var(--ink-faint); margin:2px 0 4px; font-weight:600; }
+  /* メーカー(16)・エコ＝横スクロール帯。状態(9)は折返し。 */
+  .pchips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .pchips.scroll{ flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:3px; }
+  .pchips .chip{
+    display:inline-flex; align-items:center; gap:5px; flex:0 0 auto;
+    font-size:12px; padding:5px 8px; border-radius:8px; cursor:pointer;
+    border:1.5px solid var(--card-edge); background:rgba(255,250,238,.03); color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .pchips .chip.on{ border-color:var(--vermilion); background:rgba(217,138,91,.18); color:var(--vermilion-soft); font-weight:700; }
+  /* 状態チップ＝色の丸の印 */
+  .pchips .cdot{ width:13px; height:13px; border-radius:50%; flex:0 0 auto; border:1px solid rgba(255,255,255,.35); }
+  /* メーカー／エコのletterバッジ（丸・グレー地に白文字）＝印 */
+  .pchips .cbadge{
+    min-width:18px; height:18px; padding:0 3px; border-radius:50%; flex:0 0 auto;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:#5a554c; color:#fff; font-weight:800; font-size:9.5px; line-height:1;
+    border:1px solid rgba(255,255,255,.3);
+  }
+  /* 「無し」チップの印（点線丸） */
+  .pchips .cnone{ width:13px; height:13px; border-radius:50%; flex:0 0 auto;
+    border:1.5px dashed rgba(255,255,255,.4); }
   .markform textarea{
     width:100%; min-width:200px; background:rgba(255,250,238,.04); color:var(--ink);
     border:1px solid var(--card-edge); border-radius:8px; padding:7px 9px;
@@ -482,6 +546,7 @@
   .markform .mini.danger{ border-color:rgba(217,138,91,.5); color:#e6a09a; }
   /* 🧭 ここへ行く（ルート＝スマホの地図アプリで開く）＝控えめな緑 */
   .markform .mini.go{ border-color:rgba(143,174,125,.55); color:var(--leaf); text-decoration:none; }
+  .markform .mini.pano{ border-color:rgba(143,174,125,.4); color:var(--ink-soft); text-decoration:none; }
   .markform .gonote{ font-size:10px; color:var(--ink-faint); margin-top:5px; opacity:.85; }
 
   /* ── 🗺️ 地図 / 📋 リスト 切替（#map上部の道具帯に置く小さなトグル） ── */
@@ -508,8 +573,13 @@
     background:rgba(255,250,238,.02); border:1px solid rgba(58,52,42,.6);
     border-radius:var(--r-md); padding:9px 11px; margin-bottom:8px;
   }
-  .pinrow .ic{ font-size:21px; line-height:1.1; flex:0 0 auto;
-    text-shadow:0 0 2px rgba(0,0,0,.5); }
+  .pinrow .ic{ display:inline-flex; align-items:center; gap:4px; flex:0 0 auto; padding-top:2px; }
+  .pinrow .ic .cdot{ width:15px; height:15px; border-radius:50%; border:1px solid rgba(255,255,255,.35); }
+  .pinrow .ic .cnone{ width:15px; height:15px; border-radius:50%; border:1.5px dashed rgba(255,255,255,.4); }
+  .pinrow .ic .cbadge{ min-width:18px; height:18px; padding:0 3px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:#5a554c; color:#fff; font-weight:800; font-size:9.5px; line-height:1;
+    border:1px solid rgba(255,255,255,.3); }
   .pinrow .body{ flex:1; min-width:0; }
   .pinrow .lbl{ font-size:12.5px; color:var(--ink); font-weight:600; }
   .pinrow .cm{ font-size:12px; color:var(--ink-soft); margin-top:2px; word-break:break-word; }
@@ -522,6 +592,7 @@
     border-radius:8px; padding:6px 9px; font-size:11.5px; font-family:inherit;
   }
   .pinrow .acts .go{ border-color:rgba(143,174,125,.55); color:var(--leaf); }
+  .pinrow .acts .pano{ border-color:rgba(143,174,125,.4); color:var(--ink-soft); }
   .pinrow .acts .edit{ border-color:rgba(217,138,91,.5); color:var(--vermilion-soft); }
   .listempty{ text-align:center; color:var(--ink-faint); font-size:12.5px; padding:24px 8px; line-height:1.7; }
 
@@ -607,8 +678,11 @@
     background:rgba(255,250,238,.02); border:1px solid rgba(58,52,42,.6);
     border-radius:var(--r-md); padding:8px 10px;
   }
-  .kindrow .ic{ font-size:20px; line-height:1; flex:0 0 auto; width:26px; text-align:center;
-    text-shadow:0 0 2px rgba(0,0,0,.5); }
+  .kindrow .ic{ flex:0 0 auto; width:26px; display:inline-flex; align-items:center; justify-content:center; }
+  .kindrow .ic .cbadge{ min-width:22px; height:22px; padding:0 4px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:#5a554c; color:#fff; font-weight:800; font-size:11px; line-height:1;
+    border:1px solid rgba(255,255,255,.3); }
   .kindrow .nm{ flex:1; min-width:0; font-size:13.5px; color:var(--ink);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .kindrow .sw{ flex:0 0 auto; width:16px; height:16px; border-radius:50%;
@@ -713,14 +787,14 @@
 
 <!-- ====== ③ ピンの種類（マーク）を 追加/編集/削除 するオーバーレイ ====== -->
 <div class="kinds-veil" id="kindsVeil"></div>
-<div class="kinds" id="kindsSheet" aria-label="ピンの種類（追加・編集・削除）">
+<div class="kinds" id="kindsSheet" aria-label="メーカー（追加・編集・削除）">
   <div class="kinds-head">
-    <span class="ttl">🏷️ ピンの種類</span>
+    <span class="ttl">🏷️ メーカー</span>
     <button class="kinds-x" id="kindsClose" type="button" aria-label="閉じる">✕</button>
   </div>
-  <div class="kinds-meta">アイコン＋名前＋色で並びます。追加するとピンを打つ時の選択にすぐ出ます。</div>
-  <div class="kinds-list" id="kindsList"><!-- JSで種類を並べる --></div>
-  <button class="kinds-add" id="kindsAdd" type="button">＋ 新しい種類</button>
+  <div class="kinds-meta">文字（ピンに出すイニシャル）＋メーカー名で並びます。追加するとピンを打つ時の選択にすぐ出ます。状態（色）は今は固定です。</div>
+  <div class="kinds-list" id="kindsList"><!-- JSでメーカーを並べる --></div>
+  <button class="kinds-add" id="kindsAdd" type="button">＋ 新しいメーカー</button>
 </div>
 
 <!-- ====== 🏆 順位の専門画面（フル順位表） ====== -->
@@ -766,6 +840,11 @@
     <!-- 真ん中：本物の航空写真（Google Maps hybrid＝航空写真＋地名／現在地＋精度円＋自分のピン） -->
     <div class="gmapfull">
       <div class="gmap" id="fullMap"></div>
+      <!-- 地図に浮かせる丸ボタン（右下に縦並び）：現在地に戻る／ストリートビュー -->
+      <div class="map-fabs">
+        <button class="map-fab" id="fabHere" type="button" aria-label="現在地に戻る">📍</button>
+        <button class="map-fab" id="fabPano" type="button" aria-label="ストリートビュー">🧍</button>
+      </div>
     </div>
     <!-- 真ん中：自分のピンの一覧（新しい順）＝地図と切り替えて使う -->
     <div class="gmaplistfull" id="pinList"><!-- JSで新しい順に --></div>
@@ -787,8 +866,8 @@
 // サンプルデータ（「一筆」画面と同じあだ名・例の数字に揃える）
 var data = {
   nick:  "ハヤテ",
-  // きょう"話した数"（訪問でもアポでもなく、話せた数）
-  talkedNow: 5,
+  // きょう"話した数"（初期値。実際は recomputeTalked() が今日のピンから自動計算して上書き）
+  talkedNow: 0,
   // きょうの目標＝時間チェックポイント3段（〜13時/〜17時/〜19時の話した数）
   // hourEnd＝その段が締まる時刻（時）。現在時刻の出し分けに使う。
   timeGoals: [
@@ -892,6 +971,26 @@ function renderGoalAll(d){
   document.getElementById("gStepsAll").innerHTML = html;
 }
 
+// --- 「話した数」をピンから自動計算＝今日(createdが今日)で、状態がセット済みかつ
+//     その状態の count!==false の件数。data.talkedNow に入れて目標表示へ反映する。 ---
+function isToday(iso){
+  if(!iso) return false;
+  var t = new Date(iso), n = new Date();
+  return t.getFullYear()===n.getFullYear() && t.getMonth()===n.getMonth() && t.getDate()===n.getDate();
+}
+function recomputeTalked(){
+  var c = 0;
+  pins.forEach(function(p){
+    if(!isToday(p.created)) return;
+    if(!p.status) return;                 // 新規ピン（未対応）は数えない
+    var st = statusOf(p.status);
+    if(st && st.count!==false) c++;       // count:false（古い等）は行動に数えない
+  });
+  data.talkedNow = c;
+  renderGoalHome(data);                   // 目標表示（ホーム＝特大数字）を更新
+  renderGoalAll(data);                    // 目標の専門画面（3段）も同じ数で更新
+}
+
 // --- 順位データを多い順に並べた配列を返す ---
 function sortedRanking(d){
   return d.ranking.slice().sort(function(a,b){ return b.cnt - a.cnt; });
@@ -927,36 +1026,54 @@ function renderRankFull(d){
   document.getElementById("rankFull").innerHTML = html;
 }
 
-// --- ③ ホームから1軒記録：#mapに入らず現在地にピン→マークを選ぶ（2タップ） ---
-// 保存先・マーク・関数は #map と同じ（apo.pins.v1 / 同じMARKS / savePins / renderPins を流用＝二重実装しない）
-var homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false, pending:false };
-// ホームのマーク選びチップの結線（種類の追加/編集で貼り直す時も使う）
-// チップ選択＝マークを選ぶ＝記録。GPSが遅くても“選んだマークを覚えて”位置が来たら自動で確定する
+// --- ③ ホームから1軒記録：#mapに入らず現在地にピン→状態を選ぶ（2タップ） ---
+// 保存先・関数は #map と同じ（apo.pins.v1 / savePins / renderPins を流用＝二重実装しない）。
+// 「状態」を選ぶ＝記録（色＝状態）。メーカー/エコは状態の前後どちらで選んでも反映する。
+var homePickState = { status:"", maker:"", eco:"", lat:null, lng:null, acc:null, sample:false, pending:false };
+// ホームの選択チップの結線（種類の追加/編集で貼り直す時も使う）。
+// status＝選んだ瞬間に記録（GPS未着なら覚えて位置が来たら自動確定）。maker/eco＝状態に控えるだけ。
 function wireHomePickChips(){
-  document.getElementById("homePickChips").querySelectorAll(".chip").forEach(function(b){
+  wireChips(document.getElementById("homePickChips"), homePickState);
+  // 「状態」チップだけは選択＝記録のトリガにする（上書きで再結線）
+  document.getElementById("homePickChips").querySelectorAll('.chip[data-group="status"]').forEach(function(b){
     b.addEventListener("click", function(){
-      document.getElementById("homePickChips").querySelectorAll(".chip").forEach(function(x){ x.classList.remove("on"); });
-      b.classList.add("on"); homePickState.mark = b.getAttribute("data-mk");
+      // wireChips が既に homePickState.status を更新済み。ここで記録へ進める。
+      if(homePickState._pin){                  // 記録済みなら状態だけ差し替えて保存
+        homePickState._pin.status = homePickState.status;
+        homePickState._pin.updated = new Date().toISOString();
+        savePins(); renderPins(); recomputeTalked();
+        return;
+      }
       if(homePickState.lat!=null){
-        confirmHomePin();                 // 位置が既に確定済み＝即記録
+        confirmHomePin();                       // 位置が既に確定済み＝即記録
       } else {
-        homePickState.pending = true;     // まだGPS待ち＝来たら自動で記録（取りこぼさない）
+        homePickState.pending = true;           // まだGPS待ち＝来たら自動で記録（取りこぼさない）
+        var st = statusOf(homePickState.status);
         document.getElementById("homePickMeta").textContent =
-          "現在地を確認中…（"+markOf(homePickState.mark).label+"）届き次第このマークで記録します";
+          "現在地を確認中…（"+(st?st.name:"")+"）届き次第この状態で記録します";
+      }
+    });
+  });
+  // 記録済みのあとに「メーカー/エコ」を選んだら、そのピンへ後追いで反映して保存する
+  document.getElementById("homePickChips").querySelectorAll('.chip[data-group="maker"],.chip[data-group="eco"]').forEach(function(b){
+    b.addEventListener("click", function(){
+      if(homePickState._pin){
+        homePickState._pin.maker = homePickState.maker;
+        homePickState._pin.eco   = homePickState.eco;
+        homePickState._pin.updated = new Date().toISOString();
+        savePins(); renderPins(); recomputeTalked();
       }
     });
   });
 }
 function openHomePick(){
-  homePickState = { mark:"", lat:null, lng:null, acc:null, sample:false, pending:false };
+  homePickState = { status:"", maker:"", eco:"", lat:null, lng:null, acc:null, sample:false, pending:false };
   var sheet = document.getElementById("homePick");
   var veil  = document.getElementById("homePickVeil");
   var meta  = document.getElementById("homePickMeta");
   var memo  = document.getElementById("homePickMemo");
-  // チップ＝#mapと同じ仮マーク一覧
-  document.getElementById("homePickChips").innerHTML = MARKS.map(function(mk){
-    return '<span class="chip" data-mk="'+mk.key+'">'+mk.label+'</span>';
-  }).join("");
+  // チップ＝#mapと同じ状態/メーカー/エコの3グループ
+  document.getElementById("homePickChips").innerHTML = pickerGroupsHtml(homePickState);
   memo.value = ""; memo.style.display = "none";
   meta.textContent = "現在地を確認中…";
   veil.classList.add("show"); sheet.classList.add("show");
@@ -965,31 +1082,33 @@ function openHomePick(){
   getHere(function(h){
     homePickState.lat=h.lat; homePickState.lng=h.lng; homePickState.acc=h.acc; homePickState.sample=h.sample;
     hereLatLng=[h.lat,h.lng]; hereAcc=h.acc; drawHere();
-    // GPS待ちの間にマークを押していたら、ここで取りこぼさず確定（実機のGPS遅延対策）
-    if(homePickState.pending && homePickState.mark){
+    // GPS待ちの間に状態を押していたら、ここで取りこぼさず確定（実機のGPS遅延対策）
+    if(homePickState.pending && homePickState.status){
       homePickState.pending = false;
       confirmHomePin();
       return;
     }
     meta.textContent = (h.sample ? "サンプル位置（本番はHTTPSで実測）" : "現在地")
       + " "+h.lat.toFixed(5)+", "+h.lng.toFixed(5)
-      + (h.acc!=null?"（精度 約"+h.acc+"m）":"") + " ・ マークを1つ選ぶ＝記録";
+      + (h.acc!=null?"（精度 約"+h.acc+"m）":"") + " ・ 状態を1つ選ぶ＝記録";
   });
 }
-// マークを選んだ＝現在地にピンを確定（その後メモ任意）。#mapと同じ保存（savePins/renderPins）
+// 状態を選んだ＝現在地にピンを確定（その後メモ任意）。#mapと同じ保存（savePins/renderPins）
 function confirmHomePin(){
   var s = homePickState;
-  if(s.lat==null || !s.mark) return;
+  if(s.lat==null || !s.status) return;
   var iso = new Date().toISOString();
-  var p = { lat:s.lat, lng:s.lng, acc:s.acc, mark:s.mark, comment:"", created:iso, updated:iso };
-  pins.push(p); savePins();
+  var p = { lat:s.lat, lng:s.lng, acc:s.acc, status:s.status, maker:s.maker, eco:s.eco,
+            comment:"", created:iso, updated:iso };
+  pins.push(p); savePins(); recomputeTalked();
   // 地図（ホームプレビュー/#map）の準備が整い次第、確実に描いて新ピンへ寄せる（実機の初期化遅延対策）
   drawNewHomePin();
   s._pin = p;
   // 確定後に「メモ（任意）」を出す
   var memo = document.getElementById("homePickMemo");
   memo.style.display = "block"; memo.focus();
-  document.getElementById("homePickMeta").textContent = "記録しました（"+markOf(s.mark).label+"）。メモは任意です。";
+  var st = statusOf(s.status);
+  document.getElementById("homePickMeta").textContent = "記録しました（"+(st?st.name:"")+"）。メモは任意です。";
   document.getElementById("homePickRow").innerHTML =
     '<span class="mini primary" data-act="memoSave">メモを保存して閉じる</span>'
     +'<span class="mini" data-act="cancel">そのまま閉じる</span>';
@@ -1010,7 +1129,7 @@ function wireHomePickRow(){
       if(act==="memoSave" && homePickState._pin){
         homePickState._pin.comment = document.getElementById("homePickMemo").value.trim();
         homePickState._pin.updated = new Date().toISOString();
-        savePins(); renderPins();
+        savePins(); renderPins(); recomputeTalked();
       }
       closeHomePick();
     });
@@ -1084,12 +1203,94 @@ function markOf(key){ for(var i=0;i<MARKS.length;i++){ if(MARKS[i].key===key) re
 // 新しい種類のユニークなkeyを作る
 function newMarkKey(){ return "mk" + Date.now().toString(36) + Math.floor(Math.random()*1000).toString(36); }
 
-// ── localStorage（各ピン＝{lat,lng,acc,mark,comment,created,updated}） ──
+/* ===========================================================================
+   ★ ピンの新しい中身＝「色＝状態(STATUS)」＋「文字＝メーカー(MAKER)」＋エコキュート(ECO 任意)
+   ・3つのリストを localStorage に保存（後で追加/編集できる）。既定値はここに seed。
+   ・ピン1件＝{lat,lng,acc, maker, status, eco, comment, created, updated}
+   =========================================================================== */
+// MAKERS＝ピンに出す「文字」。{key, letter, name}
+var DEFAULT_MAKERS = [
+  {key:"panasonic",  letter:"P",   name:"パナソニック"},
+  {key:"sharp",      letter:"SH",  name:"シャープ"},
+  {key:"mitsubishi", letter:"三",  name:"三菱"},
+  {key:"choshu",     letter:"長",  name:"長州産業"},
+  {key:"exsol",      letter:"エ",  name:"エクソル"},
+  {key:"kyocera",    letter:"京",  name:"京セラ"},
+  {key:"toshiba",    letter:"東",  name:"東芝"},
+  {key:"qcells",     letter:"Q",   name:"Qセルズ"},
+  {key:"sanyo",      letter:"SA",  name:"サンヨー"},
+  {key:"canadian",   letter:"カナ", name:"カナディアンソーラー"},
+  {key:"solarfront", letter:"SO",  name:"ソーラーフロンティア"},
+  {key:"dmm",        letter:"D",   name:"DMM"},
+  {key:"nextenergy", letter:"N",   name:"ネクストエナジー"},
+  {key:"soene",      letter:"ソエ", name:"ソエネ"},
+  {key:"omron",      letter:"O",   name:"オムロン"},
+  {key:"other_m",    letter:"他",  name:"その他"}
+];
+// ECOS＝エコキュート（任意）。ピンの文字には出さず、詳細/リストに表示。{key, letter, name}
+var DEFAULT_ECOS = [
+  {key:"daikin",  letter:"D", name:"ダイキン"},
+  {key:"hitachi", letter:"H", name:"日立"},
+  {key:"corona",  letter:"C", name:"コロナ"}
+];
+// STATUSES＝ピンの「色」＝今日の行動。{key, name, color, count}（count:false＝行動に数えない）
+var DEFAULT_STATUSES = [
+  {key:"list",   name:"リスト",    color:"#4a90d9", count:true},
+  {key:"rusu",   name:"留守",      color:"#5fae71", count:true},
+  {key:"heart",  name:"ハート",    color:"#f08fb6", count:true},
+  {key:"atsui",  name:"激アツ",    color:"#e23b2e", count:true},
+  {key:"apo",    name:"アポイント", color:"#e8b300", count:true},
+  {key:"doorng", name:"ドアNG",   color:"#9a948c", count:true},
+  {key:"batsu",  name:"ばつ",      color:"#222222", count:true},
+  {key:"furui",  name:"古い",      color:"#7a5230", count:false},
+  {key:"mikomi", name:"見込み",    color:"#e6892e", count:true}
+];
+var LS_MAKERS = "apo.makers.v1", LS_ECOS = "apo.ecos.v1", LS_STATUSES = "apo.statuses.v1";
+var MAKERS = [], ECOS = [], STATUSES = [];
+// 共通ローダー（保存済みがあれば使い、無ければ既定をseed）
+function loadList(lsKey, def, normalize){
+  try{
+    var raw = JSON.parse(localStorage.getItem(lsKey) || "null");
+    if(Array.isArray(raw) && raw.length){
+      return raw.filter(function(m){ return m && m.key; }).map(normalize);
+    }
+  }catch(e){}
+  return def.map(normalize);
+}
+function loadKinds2(){
+  MAKERS = loadList(LS_MAKERS, DEFAULT_MAKERS, function(m){
+    return { key:String(m.key), letter:String(m.letter||m.name||m.key).slice(0,4), name:String(m.name||m.key) };
+  });
+  ECOS = loadList(LS_ECOS, DEFAULT_ECOS, function(m){
+    return { key:String(m.key), letter:String(m.letter||m.name||m.key).slice(0,2), name:String(m.name||m.key) };
+  });
+  STATUSES = loadList(LS_STATUSES, DEFAULT_STATUSES, function(m){
+    return { key:String(m.key), name:String(m.name||m.key), color:m.color||"#cbb27a", count:(m.count!==false) };
+  });
+}
+function saveMakers(){ try{ localStorage.setItem(LS_MAKERS, JSON.stringify(MAKERS)); }catch(e){} }
+function makerOf(key){ for(var i=0;i<MAKERS.length;i++){ if(MAKERS[i].key===key) return MAKERS[i]; } return null; }
+function ecoOf(key){ for(var i=0;i<ECOS.length;i++){ if(ECOS[i].key===key) return ECOS[i]; } return null; }
+function statusOf(key){ for(var i=0;i<STATUSES.length;i++){ if(STATUSES[i].key===key) return STATUSES[i]; } return null; }
+// 新しいメーカーのユニークなkey
+function newMakerKey(){ return "mkr" + Date.now().toString(36) + Math.floor(Math.random()*1000).toString(36); }
+// 旧 mark キー → 新 status キーの推定（互換移行用）
+var MARK2STATUS = { rusu:"rusu", kotowari:"batsu", hanaseta:"list", mikomi:"mikomi", apo:"apo", saihou:"list" };
+
+// ── localStorage（各ピン＝{lat,lng,acc, maker,status,eco, comment,created,updated}） ──
 var LS_PINS = "apo.pins.v1";
 var pins = [];
 function loadPins(){
   try{ pins = JSON.parse(localStorage.getItem(LS_PINS) || "[]"); }catch(e){ pins = []; }
   if(!Array.isArray(pins)) pins = [];
+  // 互換移行：古いピン（status無し）は p.mark から status を推定して埋める。maker/eco は ""。
+  pins.forEach(function(p){
+    if(p && p.status===undefined){
+      p.status = (p.mark!=null && MARK2STATUS[p.mark]) ? MARK2STATUS[p.mark] : "";
+    }
+    if(p && p.maker===undefined) p.maker = "";
+    if(p && p.eco===undefined)   p.eco = "";
+  });
 }
 function savePins(){
   try{ localStorage.setItem(LS_PINS, JSON.stringify(pins)); }catch(e){}
@@ -1234,16 +1435,25 @@ function drawHere(){
   });
 }
 
+// 丸バッジDOMを作る（色＝status／文字＝makerのletter／status=""は中空＝未対応）
+function badgeEl(p){
+  var st  = statusOf(p.status);
+  var mkr = makerOf(p.maker);
+  var letter = mkr ? mkr.letter : (st ? "" : "・");   // 新規ピンでmaker無し＝「・」
+  var pin = document.createElement("div");
+  var sizeCls = letter.length>=3 ? "s3" : (letter.length===2 ? "s2" : "s1");
+  pin.className = "pin-badge " + sizeCls + (st ? "" : " is-new");
+  if(st) pin.style.background = st.color;
+  var span = document.createElement("span");
+  span.className = "lt"; span.textContent = letter;
+  pin.appendChild(span);
+  return pin;
+}
 // 1本のピンを地図に描く（全画面＝編集できる／ホーム＝見るだけ）
 function drawOnePin(p, map, arr, editable){
-  var mk = markOf(p.mark);
   var ll = new google.maps.LatLng(p.lat, p.lng);
-  // 絵文字マーク（クリックで編集）
-  var pin = document.createElement("div");
-  pin.className = "pinmark";
-  pin.style.color = mk.color;
-  pin.style.transform = "translate(-50%,-50%)";
-  pin.textContent = mk.icon;
+  // 丸バッジ（クリックで編集）
+  var pin = badgeEl(p);
   var ovPin = new HtmlOverlay(ll, pin, editable ? function(){ openEditPin(p); } : null);
   ovPin.setMap(map); arr.push(ovPin);
   // コメントの常時ラベル（有る時だけ・ピンの下に）
@@ -1260,11 +1470,23 @@ function renderPins(){
   if(fullMap && HtmlOverlay){ clearOverlays(fullPinObjs); pins.forEach(function(p){ drawOnePin(p, fullMap, fullPinObjs, true); }); }
   if(homeMap && HtmlOverlay){ clearOverlays(homePinObjs); pins.forEach(function(p){ drawOnePin(p, homeMap, homePinObjs, false); }); }
   renderPinList();   // リスト表示も同じデータから描き直す（地図と同期）
+  if(typeof recomputeTalked === "function") recomputeTalked();   // 「話した数」を今日のピンから再計算
 }
 
 // ── 📋 自分のピンのリスト（新しい順＝記録時刻が新しいものを上に） ──
 // 行＝マークのアイコン＋色／コメント／時刻／（あれば精度）＋ボタン 🛰️Googleで見る・🧭ここへ行く・✏️編集
 function timeOf(p){ return new Date(p.updated||p.created||0).getTime(); }
+// 🧍 ストリートビューURL（指定地点のパノラマをGoogleマップで開く）
+function gPanoUrl(lat, lng){ return "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint="+lat+","+lng; }
+// ピンの見出し（状態＋メーカー＋エコキュート）を文字で組む（リスト/詳細用）
+function pinLabel(p){
+  var st = statusOf(p.status), mkr = makerOf(p.maker), ec = ecoOf(p.eco);
+  var parts = [];
+  parts.push(st ? st.name : "新規ピン");
+  if(mkr) parts.push(mkr.name);
+  if(ec)  parts.push("エコ:"+ec.name);
+  return parts.join(" / ");
+}
 function fmtTime(iso){
   var t = new Date(iso||Date.now());
   var y=t.getMonth()+1, d=t.getDate();
@@ -1282,19 +1504,27 @@ function renderPinList(){
   var order = pins.map(function(p,i){ return i; })
                   .sort(function(a,b){ return timeOf(pins[b]) - timeOf(pins[a]); });
   box.innerHTML = order.map(function(idx){
-    var p = pins[idx], mk = markOf(p.mark);
+    var p = pins[idx];
+    var st = statusOf(p.status), mkr = makerOf(p.maker);
+    // 行頭の印＝状態の色丸＋（あれば）メーカーletterの小バッジ
+    var icHtml = st
+      ? '<span class="cdot" style="background:'+esc(st.color)+'"></span>'
+      : '<span class="cnone"></span>';
+    var letter = mkr ? mkr.letter : "";
+    var ic = '<span class="ic">'+icHtml+(letter?'<span class="cbadge">'+esc(letter)+'</span>':'')+'</span>';
     var cm = (p.comment && p.comment.trim())
       ? '<div class="cm">'+esc(p.comment)+'</div>'
       : '<div class="cm empty">メモなし</div>';
     var sub = fmtTime(p.updated||p.created) + (p.acc!=null? " ・ 精度 約"+p.acc+"m" : "");
     return '<div class="pinrow">'
-      +   '<span class="ic" style="color:'+mk.color+'">'+mk.icon+'</span>'
+      +   ic
       +   '<div class="body">'
-      +     '<div class="lbl">'+esc(mk.label)+'</div>'
+      +     '<div class="lbl">'+esc(pinLabel(p))+'</div>'
       +     cm
       +     '<div class="sub">'+esc(sub)+'</div>'
       +     '<div class="acts">'
       +       '<a class="go" href="'+gDirUrl(p.lat,p.lng)+'" target="_blank" rel="noopener">🧭 ここへ行く</a>'
+      +       '<a class="pano" href="'+gPanoUrl(p.lat,p.lng)+'" target="_blank" rel="noopener">🧍 ストリートビュー</a>'
       +       '<button class="edit" type="button" data-edit="'+idx+'">✏️ 編集</button>'
       +     '</div>'
       +   '</div>'
@@ -1332,12 +1562,35 @@ function setMapMode(mode){
   }, 40); }
 }
 
-// ── マークを選ぶチップ＋メモ（任意）のフォームHTML ──
-function markFormHtml(opts){
-  var sel = opts.mark || "";
-  var chips = MARKS.map(function(mk){
-    return '<span class="chip'+(mk.key===sel?" on":"")+'" data-mk="'+mk.key+'">'+mk.label+'</span>';
+/* ── 選ぶUI（状態・メーカー・エコキュート）のチップ群を作る共通関数 ──
+   group＝"status"/"maker"/"eco"。各チップに「印」（色丸 or letterバッジ）＋名前。 */
+function pickerGroupsHtml(sel){
+  // 状態（9個・折返し）＝色の丸＋名前。1つだけ選択。
+  var statusChips = STATUSES.map(function(s){
+    return '<span class="chip'+(s.key===sel.status?" on":"")+'" data-group="status" data-key="'+esc(s.key)+'">'
+      + '<span class="cdot" style="background:'+esc(s.color)+'"></span>'+esc(s.name)+'</span>';
   }).join("");
+  // メーカー（16・横スクロール）＝letterバッジ＋名前。1つだけ選択。
+  var makerChips = MAKERS.map(function(m){
+    return '<span class="chip'+(m.key===sel.maker?" on":"")+'" data-group="maker" data-key="'+esc(m.key)+'">'
+      + '<span class="cbadge">'+esc(m.letter)+'</span>'+esc(m.name)+'</span>';
+  }).join("");
+  // エコキュート（任意・横スクロール）＝「無し」＋letter＋名前。
+  var ecoNone = '<span class="chip'+(!sel.eco?" on":"")+'" data-group="eco" data-key="">'
+      + '<span class="cnone"></span>無し</span>';
+  var ecoChips = ecoNone + ECOS.map(function(m){
+    return '<span class="chip'+(m.key===sel.eco?" on":"")+'" data-group="eco" data-key="'+esc(m.key)+'">'
+      + '<span class="cbadge">'+esc(m.letter)+'</span>'+esc(m.name)+'</span>';
+  }).join("");
+  return ''
+    + '<div class="pgroup"><div class="glabel">状態（色）</div><div class="pchips">'+statusChips+'</div></div>'
+    + '<div class="pgroup"><div class="glabel">メーカー（文字）</div><div class="pchips scroll">'+makerChips+'</div></div>'
+    + '<div class="pgroup"><div class="glabel">エコキュート（任意）</div><div class="pchips scroll">'+ecoChips+'</div></div>';
+}
+
+// ── ピンを選ぶ（状態/メーカー/エコ）＋メモ（任意）のフォームHTML ──
+function markFormHtml(opts){
+  var sel = { status:opts.status||"", maker:opts.maker||"", eco:opts.eco||"" };
   var meta = "";
   if(opts.lat!=null){
     meta = "位置 "+opts.lat.toFixed(5)+", "+opts.lng.toFixed(5)
@@ -1345,33 +1598,38 @@ function markFormHtml(opts){
          + (opts.time?" ・ "+opts.time:"")
          + (opts.sample?" ・ サンプル位置（本番はHTTPSで実測）":"");
   }
-  // 🧭 ここへ行く＝スマホの地図アプリでこのピンへのルート（ナビ）を開く（出発地は地図アプリ側が現在地を自動）
+  // 🧭 ここへ行く＝ルート（ナビ）／🧍 ストリートビュー＝そのピンのパノラマ
   var goBtn = (opts.lat!=null)
     ? '<a class="mini go" href="'+gDirUrl(opts.lat,opts.lng)+'" target="_blank" rel="noopener">🧭 ここへ行く</a>'
+      +'<a class="mini pano" href="'+gPanoUrl(opts.lat,opts.lng)+'" target="_blank" rel="noopener">🧍 ストリートビュー</a>'
     : "";
   var rows = opts.isNew
-    ? '<span class="mini primary" data-act="save">このマークで確定</span>'
+    ? '<span class="mini primary" data-act="save">この内容で確定</span>'
       +'<span class="mini" data-act="cancel">やめる</span>'
     : '<span class="mini primary" data-act="save">保存</span>'
       + goBtn
       +'<span class="mini retake" data-act="retake">📍 ここで位置を取り直す</span>'
       +'<span class="mini danger" data-act="del">削除</span>';
   return '<div class="markform">'
-    +   '<div class="ttl">'+(opts.isNew?"マークを選ぶ":"このピンを直す")+'</div>'
+    +   '<div class="ttl">'+(opts.isNew?"記録する（状態を選ぶ）":"このピンを直す")+'</div>'
     +   (meta?'<div class="meta">'+esc(meta)+'</div>':'')
-    +   '<div class="chips">'+chips+'</div>'
+    +   pickerGroupsHtml(sel)
     +   '<textarea rows="2" placeholder="メモ（任意・打たなくてもOK）">'+esc(opts.comment||"")+'</textarea>'
     +   '<div class="row">'+rows+'</div>'
-    +   (goBtn?'<div class="gonote">ナビ（ここへ行く）はGoogleマップで開きます</div>':'')
+    +   (goBtn?'<div class="gonote">ナビ／ストリートビューはGoogleマップで開きます</div>':'')
     + '</div>';
 }
 
-// チップの選択結線（共通）。選んだキーを返す箱を更新
+// チップの選択結線（共通）。data-group（status/maker/eco）ごとに単一選択トグル。
+// state は {status, maker, eco} を更新（eco は「無し」＝空で解除可）。
 function wireChips(el, state){
-  el.querySelectorAll(".chip").forEach(function(b){
+  el.querySelectorAll(".pchips .chip").forEach(function(b){
     b.addEventListener("click", function(){
-      el.querySelectorAll(".chip").forEach(function(x){ x.classList.remove("on"); });
-      b.classList.add("on"); state.mark = b.getAttribute("data-mk");
+      var g = b.getAttribute("data-group");
+      // 同じグループ内だけ選択を外す
+      el.querySelectorAll('.pchips .chip[data-group="'+g+'"]').forEach(function(x){ x.classList.remove("on"); });
+      b.classList.add("on");
+      state[g] = b.getAttribute("data-key");
     });
   });
 }
@@ -1399,15 +1657,16 @@ function openPopup(lat, lng, html, wire, targetMap){
 function openNewPin(lat, lng, acc, sample, targetMap){
   var now = new Date();
   var timeLabel = ("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2);
-  var state = { mark:"" };
+  var state = { status:"", maker:"", eco:"" };
   var html = markFormHtml({isNew:true, lat:lat, lng:lng, acc:acc, time:timeLabel, sample:sample});
   openPopup(lat, lng, html, function(el, iw){
     wireChips(el, state);
     el.querySelector('[data-act="save"]').addEventListener("click", function(){
-      if(!state.mark){ alert("マークを1つ選んでください（仮のマークでOK）。"); return; }
+      if(!state.status){ alert("状態を1つ選んでください（色のチップ）。"); return; }
       var comment = el.querySelector("textarea").value.trim();
       var iso = now.toISOString();
-      pins.push({ lat:lat, lng:lng, acc:acc, mark:state.mark, comment:comment, created:iso, updated:iso });
+      pins.push({ lat:lat, lng:lng, acc:acc, status:state.status, maker:state.maker, eco:state.eco,
+                  comment:comment, created:iso, updated:iso });
       savePins(); renderPins(); iw.close(); openInfoWindow=null;
     });
     el.querySelector('[data-act="cancel"]').addEventListener("click", function(){ iw.close(); openInfoWindow=null; });
@@ -1431,24 +1690,26 @@ function placeHereByGps(){
 
 // ── ② 既存ピンの更新：マーク変更／コメント／📍位置取り直し／削除 ──
 function openEditPin(p){
-  var state = { mark:p.mark };
+  var state = { status:p.status||"", maker:p.maker||"", eco:p.eco||"" };
   var t = new Date(p.updated||p.created||Date.now());
   var timeLabel = ("0"+t.getHours()).slice(-2)+":"+("0"+t.getMinutes()).slice(-2);
-  var html = markFormHtml({isNew:false, mark:p.mark, comment:p.comment,
+  var html = markFormHtml({isNew:false, status:p.status, maker:p.maker, eco:p.eco, comment:p.comment,
     lat:p.lat, lng:p.lng, acc:p.acc, time:timeLabel, sample:false});
   openPopup(p.lat, p.lng, html, function(el, iw){
     wireChips(el, state);
     el.querySelector('[data-act="save"]').addEventListener("click", function(){
-      p.mark = state.mark; p.comment = el.querySelector("textarea").value.trim();
+      p.status = state.status; p.maker = state.maker; p.eco = state.eco;
+      p.comment = el.querySelector("textarea").value.trim();
       p.updated = new Date().toISOString();
       savePins(); renderPins(); iw.close(); openInfoWindow=null;
     });
     // 📍 位置を取り直す（更新時もGPSを取る＝家を正確に）
     el.querySelector('[data-act="retake"]').addEventListener("click", function(){
-      // 編集中のコメント／マークは先に控える
-      var keepMark = state.mark, keepComment = el.querySelector("textarea").value.trim();
+      // 編集中の状態/メーカー/エコ/コメントは先に控える
+      var keepS = state.status, keepM = state.maker, keepE = state.eco;
+      var keepComment = el.querySelector("textarea").value.trim();
       getHere(function(h){
-        p.lat=h.lat; p.lng=h.lng; p.acc=h.acc; p.mark=keepMark; p.comment=keepComment;
+        p.lat=h.lat; p.lng=h.lng; p.acc=h.acc; p.status=keepS; p.maker=keepM; p.eco=keepE; p.comment=keepComment;
         p.updated=new Date().toISOString();
         hereLatLng=[h.lat,h.lng]; hereAcc=h.acc; drawHere();
         savePins(); renderPins(); iw.close(); openInfoWindow=null;
@@ -1463,39 +1724,30 @@ function openEditPin(p){
   });
 }
 
-// ── 凡例（仮マークの色見本）をホームに描く ──
+// ── 凡例（状態の色見本）をホームに描く ──
 function renderHomeLegend(){
   var box = document.getElementById("homeLegend");
   if(!box) return;
-  // 小さく＝先頭4種だけ（種類リストの変更にも追従）
-  box.innerHTML = MARKS.slice(0,4).map(function(mk){
-    return '<span><i class="dot" style="background:'+mk.color+'"></i>'+mk.icon+'</span>';
+  // 小さく＝状態の先頭4つの色（状態リストに追従）
+  box.innerHTML = STATUSES.slice(0,4).map(function(s){
+    return '<span><i class="dot" style="background:'+esc(s.color)+'"></i>'+esc(s.name)+'</span>';
   }).join("");
 }
 
-/* ── ③ ピンの種類（マーク）の 一覧/追加/編集/削除 ──────────────────
-   ・MARKS（apo.marks.v1）を編集。ピンの mark キーは保持。
+/* ── ③ メーカー（MAKERS）の 一覧/追加/編集/削除 ──────────────────────
+   ・MAKERS（apo.makers.v1）を編集。メーカーの key は保持＝既存ピン互換。
+   ・状態(STATUSES)は今回固定。letter＝ピンに出す文字、name＝表示名。
    ・変わったら：ピンの再描画・凡例・開いているチップ系（homePick）に即反映。 */
 function refreshMarkConsumers(){
-  saveMarks();
+  saveMakers();
   renderHomeLegend();
-  if(typeof renderPins === "function") renderPins();   // 地図ピン＆リストの色/アイコン更新
-  // ホームのマーク選びシートが開いていればチップを貼り直す
+  if(typeof renderPins === "function") renderPins();   // 地図ピン＆リストの文字（letter）更新
+  // ホームの選びシートが開いていればチップを貼り直す
   var hpChips = document.getElementById("homePickChips");
   if(hpChips && document.getElementById("homePick").classList.contains("show")){
-    hpChips.innerHTML = MARKS.map(function(mk){
-      return '<span class="chip'+(mk.key===homePickState.mark?" on":"")+'" data-mk="'+mk.key+'">'+mk.label+'</span>';
-    }).join("");
+    hpChips.innerHTML = pickerGroupsHtml(homePickState);
     wireHomePickChips();
   }
-}
-// ラベルは「アイコン＋名前」で組み立てる（chip/凡例/リストはlabelを使う）
-function buildLabel(icon, name){ return (icon||"") + (name||""); }
-// labelから名前だけ取り出す（先頭の絵文字を除く＝編集フォームの初期値用）
-function nameFromLabel(mk){
-  if(!mk) return "";
-  var lbl = mk.label||"", ic = mk.icon||"";
-  return (ic && lbl.indexOf(ic)===0) ? lbl.slice(ic.length) : lbl;
 }
 
 function openKinds(){
@@ -1507,15 +1759,14 @@ function closeKinds(){
   document.getElementById("kindsVeil").classList.remove("show");
   document.getElementById("kindsSheet").classList.remove("show");
 }
-// 種類の一覧を描く
+// メーカーの一覧を描く（letterバッジ＋名前）
 function renderKindsList(){
   var box = document.getElementById("kindsList");
   if(!box) return;
-  box.innerHTML = MARKS.map(function(mk,i){
+  box.innerHTML = MAKERS.map(function(m,i){
     return '<div class="kindrow" data-i="'+i+'">'
-      +   '<span class="ic" style="color:'+esc(mk.color)+'">'+esc(mk.icon)+'</span>'
-      +   '<span class="nm">'+esc(nameFromLabel(mk))+'</span>'
-      +   '<span class="sw" style="background:'+esc(mk.color)+'"></span>'
+      +   '<span class="ic"><span class="cbadge">'+esc(m.letter)+'</span></span>'
+      +   '<span class="nm">'+esc(m.name)+'</span>'
       +   '<span class="acts">'
       +     '<button class="edit" type="button" data-edit="'+i+'">✏️</button>'
       +     '<button class="del" type="button" data-del="'+i+'">🗑️</button>'
@@ -1528,20 +1779,19 @@ function renderKindsList(){
   box.querySelectorAll("button[data-del]").forEach(function(b){
     b.addEventListener("click", function(){
       var i = parseInt(b.getAttribute("data-del"),10);
-      var mk = MARKS[i]; if(!mk) return;
-      if(MARKS.length<=1){ alert("最後の1種類は消せません（1つは残してください）。"); return; }
-      if(!confirm("「"+nameFromLabel(mk)+"」を消しますか？\n（このマークで記録済みのピンは既定の色/アイコンで表示されます）")) return;
-      MARKS.splice(i,1);
+      var m = MAKERS[i]; if(!m) return;
+      if(MAKERS.length<=1){ alert("最後の1社は消せません（1つは残してください）。"); return; }
+      if(!confirm("メーカー「"+m.name+"」を消しますか？\n（このメーカーで記録済みのピンは文字なしで表示されます）")) return;
+      MAKERS.splice(i,1);
       refreshMarkConsumers();
       renderKindsList();
     });
   });
 }
-// 追加/編集フォームを行として開く（index<0=新規）
+// 追加/編集フォームを行として開く（index<0=新規）。letter（ピンの文字）＋name（表示名）。
 function openKindEdit(index){
   var isNew = (index<0);
-  var mk = isNew ? {key:"", icon:"📍", color:"#cbb27a", label:""} : MARKS[index];
-  var name = isNew ? "" : nameFromLabel(mk);
+  var m = isNew ? {key:"", letter:"", name:""} : MAKERS[index];
   var box = document.getElementById("kindsList");
   // 既存の編集フォームを閉じてから開く（1つだけ）
   var prev = box.querySelector(".kindedit"); if(prev) renderKindsList();
@@ -1549,9 +1799,8 @@ function openKindEdit(index){
   form.className = "kindedit";
   form.innerHTML = ''
     + '<div class="frow">'
-    +   '<input class="icon" type="text" maxlength="2" value="'+esc(mk.icon||"")+'" aria-label="アイコン（絵文字）">'
-    +   '<input class="name" type="text" value="'+esc(name)+'" placeholder="名前（例：話せた）" aria-label="名前">'
-    +   '<input class="col" type="color" value="'+(/^#[0-9a-fA-F]{6}$/.test(mk.color)?mk.color:"#cbb27a")+'" aria-label="色">'
+    +   '<input class="icon" type="text" maxlength="4" value="'+esc(m.letter||"")+'" placeholder="文字" aria-label="ピンに出す文字（例：P・三・カナ）">'
+    +   '<input class="name" type="text" value="'+esc(m.name||"")+'" placeholder="メーカー名（例：ニチコン）" aria-label="メーカー名">'
     + '</div>'
     + '<div class="frow btns">'
     +   '<button class="cancel" type="button">やめる</button>'
@@ -1563,14 +1812,14 @@ function openKindEdit(index){
   form.querySelector(".name").focus();
   form.querySelector(".cancel").addEventListener("click", renderKindsList);
   form.querySelector(".save").addEventListener("click", function(){
-    var icon = form.querySelector(".icon").value.trim() || "📍";
-    var nm   = form.querySelector(".name").value.trim();
-    var col  = form.querySelector(".col").value || "#cbb27a";
-    if(!nm){ alert("名前を入れてください。"); return; }
+    var letter = form.querySelector(".icon").value.trim();
+    var nm     = form.querySelector(".name").value.trim();
+    if(!nm){ alert("メーカー名を入れてください。"); return; }
+    if(!letter){ letter = nm.slice(0,2); }   // 文字が空なら名前の頭2文字を仮に使う
     if(isNew){
-      MARKS.push({ key:newMarkKey(), icon:icon, color:col, label:buildLabel(icon,nm) });
+      MAKERS.push({ key:newMakerKey(), letter:letter, name:nm });
     } else {
-      mk.icon=icon; mk.color=col; mk.label=buildLabel(icon,nm);   // keyは保持＝既存ピン互換
+      m.letter=letter; m.name=nm;            // keyは保持＝既存ピン互換
     }
     refreshMarkConsumers();
     renderKindsList();
@@ -1699,6 +1948,20 @@ function onHomeShown(){
 // 「📍 ここにピン」ボタン（#map内）
 document.getElementById("addPinBtn").addEventListener("click", placeHereByGps);
 
+// 📍 現在地に戻る＝fullMapを現在地へ寄せて拡大（無ければGPSを取って寄せる）
+document.getElementById("fabHere").addEventListener("click", function(){
+  if(!fullMap) return;
+  function go(lat,lng){ fullMap.setCenter({lat:lat,lng:lng}); fullMap.setZoom(18); }
+  if(hereLatLng){ go(hereLatLng[0], hereLatLng[1]); drawHere(); }
+  else getHere(function(h){ hereLatLng=[h.lat,h.lng]; hereAcc=h.acc; drawHere(); go(h.lat,h.lng); });
+});
+// 🧍 ストリートビュー＝地図中心のパノラマをGoogleマップで開く
+document.getElementById("fabPano").addEventListener("click", function(){
+  if(!fullMap) return;
+  var c = fullMap.getCenter(); if(!c) return;
+  window.open(gPanoUrl(c.lat(), c.lng()), "_blank");
+});
+
 // 🗺️ 地図 / 📋 リスト の切替ボタン
 document.getElementById("segMap").addEventListener("click", function(){ setMapMode("map"); });
 document.getElementById("segList").addEventListener("click", function(){ setMapMode("list"); });
@@ -1718,11 +1981,11 @@ document.getElementById("kindsVeil").addEventListener("click", closeKinds);
 document.getElementById("kindsAdd").addEventListener("click", function(){ openKindEdit(-1); });
 
 // 描画
-loadMarks();   // ③ ピンの種類（apo.marks.v1）を先に読む＝チップ/凡例/リストの基
+loadMarks();    // 旧マーク（apo.marks.v1）＝互換のため読むだけ（markOfが残存）
+loadKinds2();   // ③ メーカー/エコ/状態（apo.makers/ecos/statuses.v1）を読む＝チップ/凡例/ピンの基
 loadPins();
 renderHomeLegend();
-renderGoalHome(data);
-renderGoalAll(data);
+recomputeTalked();   // 「話した数」を今日のピンから自動計算→目標(ホーム/専門)を描く
 renderRankHome(data);
 renderRankFull(data);
 // 下の「ここにピン」バーは削除済み（地図タップで記録）。残っていれば結ぶ＝後方互換。
