@@ -1553,7 +1553,7 @@ function wireChips(el, state){
 // targetMap＝吹き出しを乗せる地図（既定＝ホーム地図 homeMap＝唯一の地図）
 function openPopup(lat, lng, html, wire, targetMap){
   if(openInfoWindow){ openInfoWindow.close(); openInfoWindow=null; }
-  var iw = new google.maps.InfoWindow({ content:html, maxWidth:300 });
+  var iw = new google.maps.InfoWindow({ content:html, maxWidth:240 });
   google.maps.event.addListener(iw, "domready", function(){
     // InfoWindowの中身は .markform をユニークに含む＝そこを起点に結線
     var forms = document.querySelectorAll(".gm-style .markform");
