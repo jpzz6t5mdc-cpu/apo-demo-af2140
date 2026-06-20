@@ -47,6 +47,8 @@
     --fs-small:11.5px;    /* 注記・ラベル */
     --fs-num:32px;        /* 主役の数字 */
     --bar-h:10px;         /* 進捗バーの高さ */
+    /* ── 文字：全画面で統一（ビジネス定番＝ヒラギノ角ゴ。やや細字）── */
+    --font:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Helvetica Neue",system-ui,sans-serif;
   }
 
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%;}
@@ -57,7 +59,7 @@
     background:
       radial-gradient(120% 70% at 50% -10%, #2a241c 0%, var(--paper) 55%, var(--paper2) 100%);
     color:var(--ink);
-    font-family:"Zen Kurenaido","Hiragino Sans","Yu Gothic",sans-serif;
+    font-family:var(--font); font-weight:400;
     line-height:1.55;
   }
 
@@ -124,7 +126,7 @@
   /* 小さな見出し（"ランキング"の語は出さない＝アイコン＋「今月のアポ」） */
   .rank .cap{
     text-align:center;
-    font-family:"Yuji Syuku",serif;
+    font-family:var(--font);
     font-size:11px; letter-spacing:.04em;
     color:var(--gold);
     margin-bottom:6px;
@@ -174,7 +176,7 @@
     margin-bottom:8px;
   }
   .goal .h .t{
-    font-family:"Yuji Syuku",serif; font-size:var(--fs-title);
+    font-family:var(--font); font-size:var(--fs-title);
     color:var(--gold); letter-spacing:.06em;
   }
   .goal .h .sub{ font-size:var(--fs-small); color:var(--ink-faint); }
@@ -304,7 +306,7 @@
     z-index:2010; display:inline-flex; align-items:center; gap:5px;
     background:rgba(26,24,21,.86); border:1px solid var(--card-edge);
     border-radius:var(--r-sm); color:var(--ink); font-size:14px;
-    font-family:"Zen Kurenaido",sans-serif;
+    font-family:var(--font);
     padding:9px 14px; cursor:pointer; transition:transform .12s ease;
     box-shadow:0 4px 12px -4px rgba(0,0,0,.7);
   }
@@ -312,7 +314,7 @@
   /* 帯ラベル「地図」＝左上に小さく（地図の上に浮かす） */
   .map .tag{
     position:absolute; left:8px; top:7px; z-index:3;
-    font-family:"Yuji Syuku",serif; font-size:12px; color:var(--gold);
+    font-family:var(--font); font-size:12px; color:var(--gold);
     background:rgba(26,24,21,.72); border:1px solid var(--card-edge);
     border-radius:var(--r-sm); padding:2px 8px; letter-spacing:.1em;
     pointer-events:none;
@@ -328,7 +330,7 @@
   .map .legend .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:3px; vertical-align:middle; }
 
   /* Google Mapsのキャンバス＝下地は墨。InfoWindowの中身（.markform）は型で揃える */
-  .gm-style{ font-family:"Zen Kurenaido","Hiragino Sans",sans-serif; }
+  .gm-style{ font-family:var(--font); }
   /* InfoWindowの白い吹き出しを墨+朱+金の型に寄せる（中の文字色が読めるように） */
   .gm-style .gm-style-iw-c{
     background:var(--card)!important; color:var(--ink)!important;
@@ -348,7 +350,7 @@
     transform:translate(-50%,-50%);
     display:flex; align-items:center; justify-content:center;
     color:#fff; font-weight:800; line-height:1;
-    font-family:"Hiragino Sans",-apple-system,sans-serif;
+    font-family:var(--font);
     border:1.5px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.55);
     text-shadow:0 0 2px rgba(0,0,0,.5);
   }
@@ -372,7 +374,7 @@
   .pin-label{
     background:transparent; color:#fff; border:0; box-shadow:none;
     padding:1px 3px; font-size:11px; font-weight:700; white-space:nowrap;
-    font-family:"Hiragino Sans",-apple-system,sans-serif;
+    font-family:var(--font);
     text-shadow:0 0 3px rgba(0,0,0,.95), 0 1px 2px rgba(0,0,0,.9), 1px 0 1px rgba(0,0,0,.9), -1px 0 1px rgba(0,0,0,.9);
     transform:translate(-50%, 5px); display:inline-block; pointer-events:none;
   }
@@ -442,14 +444,14 @@
     border:1px solid var(--card-edge);
     border-radius:999px;
     color:var(--ink-soft); font-size:14px;
-    font-family:"Zen Kurenaido",sans-serif;
+    font-family:var(--font);
     padding:10px 16px; cursor:pointer;
     box-shadow:0 8px 20px -8px rgba(0,0,0,.75);
     transition:transform .12s ease;
   }
   .backbtn:active{ transform:scale(.95); }
   .topbar .ttl{
-    font-family:"Yuji Syuku",serif; font-size:16px;
+    font-family:var(--font); font-size:16px;
     color:var(--gold); letter-spacing:.08em;
   }
   /* 専門画面の本体＝1枚の大カードで全画面 */
@@ -507,7 +509,7 @@
     background:linear-gradient(180deg, var(--vermilion), var(--vermilion-soft));
     border:1px solid rgba(217,138,91,.6); border-radius:var(--r-md);
     color:#231d15; font-weight:700; font-size:14px;
-    font-family:"Zen Kurenaido",sans-serif;
+    font-family:var(--font);
     padding:9px 14px; cursor:pointer; transition:transform .12s ease;
   }
   .map-btn:active{ transform:scale(.96); }
@@ -595,7 +597,7 @@
   }
   .seg button{
     background:transparent; border:none; cursor:pointer;
-    color:var(--ink-soft); font-size:12.5px; font-family:"Zen Kurenaido",sans-serif;
+    color:var(--ink-soft); font-size:12.5px; font-family:var(--font);
     padding:7px 11px; letter-spacing:.02em;
   }
   .seg button + button{ border-left:1px solid var(--card-edge); }
@@ -648,7 +650,7 @@
     transform:translateY(110%); transition:transform .26s ease;
   }
   .homepick.show{ transform:translateY(0); }
-  .homepick .ttl{ font-family:"Yuji Syuku",serif; font-size:14px; color:var(--gold); margin-bottom:3px; }
+  .homepick .ttl{ font-family:var(--font); font-size:14px; color:var(--gold); margin-bottom:3px; }
   .homepick .meta{ font-size:11px; color:var(--ink-faint); margin-bottom:9px; }
   .homepick .chips{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:4px; }
   .homepick .chip{
@@ -680,7 +682,7 @@
     display:inline-flex; align-items:center; gap:5px;
     background:linear-gradient(180deg, rgba(255,250,238,.05), rgba(0,0,0,.05));
     border:1px solid var(--card-edge); border-radius:var(--r-md);
-    color:var(--gold); font-size:13px; font-family:"Zen Kurenaido",sans-serif;
+    color:var(--gold); font-size:13px; font-family:var(--font);
     padding:9px 12px; cursor:pointer; transition:transform .12s ease;
   }
   .kinds-btn:active{ transform:scale(.96); }
@@ -704,7 +706,7 @@
   }
   .kinds.show{ transform:translateY(0); }
   .kinds-head{ display:flex; align-items:center; justify-content:space-between; }
-  .kinds-head .ttl{ font-family:"Yuji Syuku",serif; font-size:15px; color:var(--gold); }
+  .kinds-head .ttl{ font-family:var(--font); font-size:15px; color:var(--gold); }
   .kinds-x{
     background:transparent; border:none; cursor:pointer; color:var(--ink-soft);
     font-size:16px; padding:4px 6px; line-height:1;
@@ -738,7 +740,7 @@
     display:flex; align-items:center; justify-content:center; gap:8px;
     background:linear-gradient(180deg, var(--vermilion), var(--vermilion-soft));
     border:1px solid rgba(217,138,91,.6); border-radius:var(--r-md);
-    color:#231d15; font-weight:700; font-size:14px; font-family:"Zen Kurenaido",sans-serif;
+    color:#231d15; font-weight:700; font-size:14px; font-family:var(--font);
     padding:11px 14px; cursor:pointer;
   }
   .kinds-add:active{ transform:scale(.985); }
@@ -1544,7 +1546,7 @@ function drawOnePin(p, map, arr, editable){
   }
 }
 // コメント表示のズーム境目：これ以上"拡大"したらコメントを出す／これ未満ならピン(マーク)だけ
-var COMMENT_ZOOM = 18;
+var COMMENT_ZOOM = 16;
 function syncLabelZoom(){
   if(!homeMap) return;
   var z = homeMap.getZoom() || 0;
