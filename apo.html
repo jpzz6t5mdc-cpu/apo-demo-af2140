@@ -816,6 +816,7 @@
         <button class="map-kinds" id="homeKindsBtn" type="button" aria-label="メーカーを編集">🏷️</button>
         <!-- 地図に浮かせる丸ボタン（右下に縦並び）：現在地に戻る／ストリートビュー -->
         <div class="map-fabs">
+          <button class="map-fab" id="fabMapType" type="button" aria-label="航空写真と地図を切り替え">🛰️</button>
           <button class="map-fab" id="fabHere" type="button" aria-label="現在地に戻る">📍</button>
           <button class="map-fab" id="fabPano" type="button" aria-label="ストリートビュー">🧍</button>
         </div>
@@ -1416,6 +1417,11 @@ var LS_LASTPOS = "apo.lastpos.v1";
 function saveLastPos(lat,lng){ if(!isFinite(lat)||!isFinite(lng))return; try{ localStorage.setItem(LS_LASTPOS, JSON.stringify({lat:lat,lng:lng,t:Date.now()})); }catch(e){} }
 function loadLastPos(){ try{ var o=JSON.parse(localStorage.getItem(LS_LASTPOS)||"null"); if(o&&isFinite(o.lat)&&isFinite(o.lng)) return o; }catch(e){} return null; }
 
+// ── 地図の見た目を覚える＝標準は“軽い地図(roadmap)”でサクサク（Googleマップアプリと同じ軽さ・白抜けゼロ）。航空写真を選んだら記憶し次回もそれ。 ──
+var LS_MAPTYPE = "apo.maptype.v1";
+function loadMapType(){ try{ var v=localStorage.getItem(LS_MAPTYPE); return (v==="hybrid"||v==="roadmap")?v:"roadmap"; }catch(e){ return "roadmap"; } }
+function saveMapType(v){ try{ localStorage.setItem(LS_MAPTYPE, v); }catch(e){} }
+
 // ── 現在地を取る（成功で {lat,lng,acc}／失敗でサンプルにフォールバック） ──
 function getHere(cb){
   if(!navigator.geolocation){
@@ -1465,6 +1471,10 @@ function stopWatch(){
 document.addEventListener("visibilitychange", function(){
   if(document.visibilityState === "hidden") stopWatch();
   else startWatch();
+});
+// 画面サイズが変わったら(アドレスバーの出入り等)地図にも知らせる＝タイル未取得の“白抜け”を防ぐ
+window.addEventListener("resize", function(){
+  if(window.homeMap && window.google && google.maps){ google.maps.event.trigger(homeMap, "resize"); }
 });
 
 // ── 地図インスタンス（ホームの1つに集約）と各レイヤ ──
@@ -1866,7 +1876,7 @@ function initHomeMap(){
   homeMap = new google.maps.Map(document.getElementById("homeMap"), {
     center: firstPos ? {lat:firstPos.lat, lng:firstPos.lng} : {lat:SAMPLE_CENTER[0], lng:SAMPLE_CENTER[1]},
     zoom:17,
-    mapTypeId:"hybrid",
+    mapTypeId: loadMapType(),     // 標準=軽い地図(roadmap)でサクサク。航空写真を選んでいればそれを記憶
     tilt:0,
     disableDefaultUI:true,       // コントロールは出さない（型を保つ）が地図自体は触れる
     gestureHandling:"greedy",    // 指でパン・ピンチ拡大OK＝“触れる地図”
@@ -1947,6 +1957,22 @@ document.getElementById("fabHere").addEventListener("click", function(){
   if(hereLatLng){ go(hereLatLng[0], hereLatLng[1]); drawHere(); }
   else getHere(function(h){ hereLatLng=[h.lat,h.lng]; hereAcc=h.acc; drawHere(); go(h.lat,h.lng); });
 });
+// 🛰️/🗺️ 航空写真⇄軽い地図の切替（選んだら記憶＝次回もそれ）。標準は軽い地図でサクサク・白抜けゼロ。
+(function(){
+  var btn = document.getElementById("fabMapType");
+  if(!btn) return;
+  function paint(){
+    var t = homeMap ? homeMap.getMapTypeId() : loadMapType();
+    btn.textContent = (t==="hybrid") ? "🗺️" : "🛰️";   // 今が航空写真なら“地図に戻る”印／今が地図なら“航空写真へ”印
+    btn.setAttribute("aria-label", (t==="hybrid") ? "軽い地図に切り替え" : "航空写真に切り替え");
+  }
+  btn.addEventListener("click", function(){
+    if(!homeMap) return;
+    var next = (homeMap.getMapTypeId()==="hybrid") ? "roadmap" : "hybrid";
+    homeMap.setMapTypeId(next); saveMapType(next); paint();
+  });
+  whenGmaps(function(){ setTimeout(paint, 200); });   // 地図が出来てからアイコンを合わせる
+})();
 // 🧍 ストリートビュー＝地図中心のパノラマをアプリ内で開く（外部Googleマップに飛ばさない）
 document.getElementById("fabPano").addEventListener("click", function(){
   if(!homeMap) return;
