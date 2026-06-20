@@ -73,7 +73,7 @@
      safe-area対応（上ノッチ／下ホームバーを避ける）
      ============================================================ */
   .app{
-    height:100dvh; height:100svh;        /* 動的ビューポート優先 */
+    height:100svh; height:100dvh;        /* 実際に見えている高さ(dvh)に追従＝下に白いすき間を作らない（svhは小さく見積もり過ぎて余白が出るのでフォールバックに） */
     max-width:480px; margin:0 auto;
     display:flex; flex-direction:column;
     /* 下バー削除＝3ゾーンが下端まで使う（safe-areaぶんだけ下に余白） */
