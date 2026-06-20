@@ -1561,7 +1561,7 @@ function drawOnePin(p, map, arr, editable){
   }
 }
 // コメント表示のズーム境目：これ以上"拡大"したらコメントを出す／これ未満ならピン(マーク)だけ
-var COMMENT_ZOOM = 16;
+var COMMENT_ZOOM = 14;
 function syncLabelZoom(){
   if(!homeMap) return;
   var z = homeMap.getZoom() || 0;
