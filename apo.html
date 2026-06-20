@@ -997,6 +997,79 @@ function sortedRanking(d){
   return d.ranking.slice().sort(function(a,b){ return b.cnt - a.cnt; });
 }
 
+/* ===== 🦴 背骨v3 連動レイヤ（1段目：¥0モック。2段目で“窓口”の中身を本物DBへ差し替え）=====
+   順位の元データの形＝背骨v3 activity_log と同じ列に揃える：
+     acted_by_actor_id（誰）/ display_name（表示名）/ activity_type（'visit'）/
+     result（結果＝status：apo=アポ取得）/ occurred_at（現場時刻）/ geo_lat,geo_lng / voided_at（取消）
+   自分の活動＝地図のピンから生成（本番では端末→背骨v3へ送られる1行に相当）。 */
+var SELF_ACTOR_ID = "self";                    // 本番では actor.id
+function activityFromPins(){
+  var recs = [];
+  pins.forEach(function(p){
+    if(!p || !p.status) return;
+    recs.push({
+      acted_by_actor_id: SELF_ACTOR_ID,
+      display_name: data.nick,
+      activity_type: "visit",
+      result: p.status,                        // 'apo' が背骨v3の「アポ取得」に対応
+      occurred_at: p.created,                  // 背骨v3 occurred_at（現場時刻）
+      geo_lat: p.lat, geo_lng: p.lng,          // 背骨v3 geo列
+      voided_at: null
+    });
+  });
+  return recs;
+}
+// 今月か（occurred_at が今月）
+function isThisMonth(iso){
+  if(!iso) return false;
+  var t = new Date(iso), n = new Date();
+  return t.getFullYear()===n.getFullYear() && t.getMonth()===n.getMonth();
+}
+/* 🪟 集計の窓口＝「今月・アポだけ・担当者ごとに件数・多い順」。
+   背骨v3：SELECT acted_by_actor_id, COUNT(*) FROM activity_log
+     WHERE result='アポ' AND occurred_at 当月 AND voided_at IS NULL
+     GROUP BY acted_by_actor_id ORDER BY COUNT DESC
+   ★2段目：この関数の中身だけを本物DB（集計ビュー/API）に差し替える。 */
+function rankApoThisMonth(records){
+  var byActor = {};
+  records.forEach(function(r){
+    if(!r || r.voided_at) return;
+    if(r.activity_type !== "visit") return;
+    if(r.result !== "apo") return;             // Q1＝アポだけ（確定）
+    if(!isThisMonth(r.occurred_at)) return;     // 今月のみ
+    var id = r.acted_by_actor_id;
+    if(!byActor[id]) byActor[id] = { who:r.display_name, cnt:0 };
+    byActor[id].cnt++;
+  });
+  var arr = Object.keys(byActor).map(function(k){ return byActor[k]; });
+  arr.sort(function(a,b){ return b.cnt - a.cnt; });
+  return arr;
+}
+/* 他の人＝本番の共有DBが立つまでの“見本”（2段目で本物に置換）。自分は含めない。 */
+var RANK_SEED_OTHERS = [
+  { who:"ケン", cnt:9 }, { who:"リク", cnt:8 }, { who:"ノア", cnt:7 },
+  { who:"アヤ", cnt:5 }, { who:"カイ", cnt:5 }, { who:"ミオ", cnt:4 },
+  { who:"ジン", cnt:3 }, { who:"ソウ", cnt:2 }, { who:"ユウ", cnt:1 }
+];
+// 自分の今月アポ件数＝窓口で集計（地図のピンから・生きてる）
+function myApoCountThisMonth(){
+  var mine = rankApoThisMonth(activityFromPins());
+  return mine.length ? mine[0].cnt : 0;
+}
+// 全員の順位＝見本(他人)＋自分(生きてる)を合体し、多い順に
+function liveRanking(){
+  var list = RANK_SEED_OTHERS.map(function(o){ return { who:o.who, cnt:o.cnt, me:false }; });
+  list.push({ who:data.nick, cnt:myApoCountThisMonth(), me:true });
+  list.sort(function(a,b){ return b.cnt - a.cnt; });
+  return list;
+}
+// 順位を生きた値で更新＝地図のピンが変わるたびに呼ばれる（recomputeTalked内）
+function recomputeRank(){
+  data.ranking = liveRanking();
+  renderRankHome(data);
+  renderRankFull(data);
+}
+
 // --- ホームの左帯：今月のアポ順位（小さく・自分は朱で強調） ---
 function renderRankHome(d){
   var list = sortedRanking(d);
