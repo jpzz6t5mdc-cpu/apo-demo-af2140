@@ -51,7 +51,7 @@
   }
 
   /* ── 役職画面を1枚で映す窓 ── */
-  #stage{position:fixed; top:0; left:0; width:100%; height:100dvh; border:0; background:var(--paper); display:none;}
+  #stage{position:fixed; top:0; left:0; width:100%; height:calc(100dvh - var(--tabbar-h) - env(safe-area-inset-bottom)); border:0; background:var(--paper); display:none;}
   #stage.show{display:block;}
 
   /* ── 左上の ☰（切替時だけ押す）── */
@@ -120,6 +120,28 @@
     opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; white-space:nowrap;
   }
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  /* 下メニューバー（6アイコン）＝将来の画面切替の土台。今は🏠🗺️が連動・他は「準備中」。 */
+  :root{ --tabbar-h:54px; }
+  .tabbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:25;
+    height:calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+    padding:0 4px env(safe-area-inset-bottom);
+    display:flex; align-items:stretch;
+    background:linear-gradient(180deg, var(--card), var(--paper2));
+    border-top:1px solid var(--card-edge);
+    box-shadow:0 -8px 22px -16px rgba(0,0,0,.8);
+  }
+  .tabbar button{
+    flex:1 1 0; min-width:0; background:transparent; border:0; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    color:var(--ink-faint); font-family:inherit; padding:6px 0 4px;
+    transition:color .12s ease, transform .12s ease;
+  }
+  .tabbar button .ic{ font-size:20px; line-height:1; }
+  .tabbar button .lb{ font-size:10px; letter-spacing:.02em; white-space:nowrap; }
+  .tabbar button:active{ transform:scale(.9); }
+  .tabbar button.on{ color:var(--vermilion-soft); }
+  .tabbar button.soon{ opacity:.5; }
 </style>
 </head>
 <body>
@@ -141,6 +163,16 @@
   </div>
 
   <div id="toast"></div>
+
+  <!-- 下メニューバー（6アイコン）：🏠ホーム/🗺️マップは既存画面へ連動、他は準備中。後で画面を作ったら data-key を足すだけ。 -->
+  <nav class="tabbar" id="tabbar" aria-label="メニュー">
+    <button type="button" data-key="apo"><span class="ic">🏠</span><span class="lb">ホーム</span></button>
+    <button type="button" data-key="map"><span class="ic">🗺️</span><span class="lb">マップ</span></button>
+    <button type="button" data-soon="1"><span class="ic">📍</span><span class="lb">記録</span></button>
+    <button type="button" data-soon="1"><span class="ic">📊</span><span class="lb">成績</span></button>
+    <button type="button" data-soon="1"><span class="ic">📤</span><span class="lb">送る</span></button>
+    <button type="button" data-soon="1"><span class="ic">⚙️</span><span class="lb">設定</span></button>
+  </nav>
 
 <script>
 /* ============================================================
@@ -279,6 +311,26 @@ window.addEventListener("hashchange", function(){
 });
 
 boot();
+
+/* 下メニューバー（6アイコン）の配線＝既存画面は切替／未実装は「準備中」。 */
+(function(){
+  var bar = document.getElementById("tabbar");
+  if(!bar) return;
+  var btns = Array.prototype.slice.call(bar.querySelectorAll("button"));
+  function syncOn(){
+    var cur = stage.getAttribute("data-key");
+    btns.forEach(function(b){ b.classList.toggle("on", !!b.dataset.key && b.dataset.key === cur); });
+  }
+  btns.forEach(function(b){
+    b.addEventListener("click", function(){
+      if(b.dataset.soon){ showToast("準備中です"); return; }
+      if(b.dataset.key){ openScreen(b.dataset.key); }
+    });
+  });
+  var _open = openScreen;
+  openScreen = function(k){ _open(k); syncOn(); };
+  syncOn();
+})();
 
 (function(){var L=null;function p(){fetch("ver.txt?t="+Date.now(),{cache:"no-store"}).then(function(r){return r.text();}).then(function(t){if(L===null){L=t;}else if(t!==L){location.reload(true);}}).catch(function(){});}setInterval(p,5000);})();
 </script>
