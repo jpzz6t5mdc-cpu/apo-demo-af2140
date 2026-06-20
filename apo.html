@@ -990,6 +990,7 @@ function recomputeTalked(){
   data.talkedNow = c;
   renderGoalHome(data);                   // 目標表示（ホーム＝特大数字）を更新
   renderGoalAll(data);                    // 目標の専門画面（3段）も同じ数で更新
+  recomputeRank();                        // 順位も同じピンから生きた値に＝地図と連動（背骨v3の形）
 }
 
 // --- 順位データを多い順に並べた配列を返す ---
