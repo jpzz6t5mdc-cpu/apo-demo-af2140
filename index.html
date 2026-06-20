@@ -12,6 +12,13 @@
 <link rel="icon" type="image/png" href="icon-192.png" />
 <link rel="manifest" href="manifest.json" />
 <title>LOG POSE</title>
+<!-- ★地図を最速：外枠の読込時点で(1)地図ドメインへ接続を温める＋(2)地図の本体JSを先回りダウンロード（中身apo.htmlが取りに行く前に並行で取得＝直列の待ちを短縮） -->
+<link rel="preconnect" href="https://maps.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://maps.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://khms0.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://khms1.googleapis.com" crossorigin>
+<link rel="dns-prefetch" href="https://maps.googleapis.com">
+<link rel="preload" as="script" href="https://maps.googleapis.com/maps/api/js?key=AIzaSyAKNs7uzY9RsM2qZXdBlL6cekzQauM3PL4&v=weekly&loading=async&callback=__initGmaps">
 
 <style>
   /* ============================================================
