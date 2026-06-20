@@ -433,14 +433,18 @@
     display:flex; align-items:center; gap:10px;
     padding:6px 2px 10px 2px;
   }
+  /* ◀戻る＝左上のtopbarから外し、親指で押しやすい右下に配置。
+     position:absolute＝親の.screen基準で右下に収める（.screenの表示/非表示と表示状態が一致・transformとも干渉しない）。 */
   .backbtn{
+    position:absolute; right:14px; bottom:20px; z-index:60;
     display:inline-flex; align-items:center; gap:5px;
-    background:linear-gradient(180deg, rgba(255,250,238,.05), rgba(0,0,0,.05));
+    background:linear-gradient(180deg, var(--card), var(--paper2));
     border:1px solid var(--card-edge);
-    border-radius:var(--r-sm);
-    color:var(--ink-soft); font-size:13px;
+    border-radius:999px;
+    color:var(--ink-soft); font-size:14px;
     font-family:"Zen Kurenaido",sans-serif;
-    padding:7px 12px; cursor:pointer;
+    padding:10px 16px; cursor:pointer;
+    box-shadow:0 8px 20px -8px rgba(0,0,0,.75);
     transition:transform .12s ease;
   }
   .backbtn:active{ transform:scale(.95); }
