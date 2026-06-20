@@ -1532,7 +1532,7 @@ function markFormHtml(opts){
     +   '<div class="ttl">'+(opts.isNew?"記録する（状態を選ぶ）":"このピンを直す")+'</div>'
     +   (meta?'<div class="meta">'+esc(meta)+'</div>':'')
     +   pickerGroupsHtml(sel)
-    +   '<textarea rows="2" placeholder="メモ（任意・打たなくてもOK）">'+esc(opts.comment||"")+'</textarea>'
+    +   '<textarea rows="2" placeholder="メモ（任意・打たなくてもOK）">'+esc(memoVal)+'</textarea>'
     +   '<div class="row">'+rows+'</div>'
     +   (goBtn?'<div class="gonote">ナビ（ここへ行く）はGoogleマップで開きます。ストリートビューはこの画面で見られます。</div>':'')
     + '</div>';
