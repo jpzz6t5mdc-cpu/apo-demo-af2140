@@ -1525,6 +1525,9 @@ function markFormHtml(opts){
       + goBtn
       +'<span class="mini retake" data-act="retake">📍 ここで位置を取り直す</span>'
       +'<span class="mini danger" data-act="del">削除</span>';
+  // メモは新規ピンなら今日の日付（例 6/19）を初期表示＝みんなのタップ数を減らす（編集時は既存メモのまま）
+  var _t = new Date();
+  var memoVal = opts.isNew ? (opts.comment || ((_t.getMonth()+1)+"/"+_t.getDate())) : (opts.comment||"");
   return '<div class="markform">'
     +   '<div class="ttl">'+(opts.isNew?"記録する（状態を選ぶ）":"このピンを直す")+'</div>'
     +   (meta?'<div class="meta">'+esc(meta)+'</div>':'')
