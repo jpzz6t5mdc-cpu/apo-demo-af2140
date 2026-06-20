@@ -51,6 +51,8 @@
 
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%;}
   html,body{height:100%; overflow:hidden;}
+  /* 土台(html)も墨色で塗る＝万一アプリが下端まで届かなくても、すき間が白く出ない */
+  html{ background:var(--paper); }
   body{
     background:
       radial-gradient(120% 70% at 50% -10%, #2a241c 0%, var(--paper) 55%, var(--paper2) 100%);
