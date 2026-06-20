@@ -368,14 +368,16 @@
     box-shadow:0 1px 4px rgba(0,0,0,.4);
   }
   .pin-badge.is-new::after{ border-top-color:rgba(255,255,255,.85); }
-  /* ピン横の常時ラベル（コメントが有る時だけ・読めるよう墨地に白フチ）＝下に出すOverlay */
+  /* ピン横のコメント＝背景透明・白字＋濃い縁取りで地図の上でも読める。拡大時だけ表示（下のpins-onlyで制御） */
   .pin-label{
-    background:rgba(26,24,21,.84); color:var(--ink); border:1px solid rgba(240,233,218,.5);
-    border-radius:7px; padding:2px 7px; font-size:11px; font-weight:600;
-    box-shadow:0 1px 4px rgba(0,0,0,.5); white-space:nowrap;
-    font-family:"Zen Kurenaido","Hiragino Sans",sans-serif;
-    transform:translate(-50%, 6px); display:inline-block;
+    background:transparent; color:#fff; border:0; box-shadow:none;
+    padding:1px 3px; font-size:11px; font-weight:700; white-space:nowrap;
+    font-family:"Hiragino Sans",-apple-system,sans-serif;
+    text-shadow:0 0 3px rgba(0,0,0,.95), 0 1px 2px rgba(0,0,0,.9), 1px 0 1px rgba(0,0,0,.9), -1px 0 1px rgba(0,0,0,.9);
+    transform:translate(-50%, 5px); display:inline-block; pointer-events:none;
   }
+  /* 一定より縮小したら＝コメントを隠してマーク(ピン)だけにする */
+  body.pins-only .pin-label{ display:none; }
   /* 現在地マーカー（脈打つ朱／青ではなく和の差し色）＝Overlayで描く */
   .here-dot{
     width:14px; height:14px; border-radius:50%; transform:translate(-50%,-50%);
@@ -1537,9 +1539,17 @@ function drawOnePin(p, map, arr, editable){
     ovLab.setMap(map); arr.push(ovLab);
   }
 }
+// コメント表示のズーム境目：これ以上"拡大"したらコメントを出す／これ未満ならピン(マーク)だけ
+var COMMENT_ZOOM = 18;
+function syncLabelZoom(){
+  if(!homeMap) return;
+  var z = homeMap.getZoom() || 0;
+  document.body.classList.toggle("pins-only", z < COMMENT_ZOOM);
+}
 // すべてのピンを描き直す（ホーム地図1つ＝編集可能）
 function renderPins(){
   if(homeMap && HtmlOverlay){ clearOverlays(homePinObjs); pins.forEach(function(p){ drawOnePin(p, homeMap, homePinObjs, true); }); }
+  syncLabelZoom();   // 今のズームに合わせてコメントの出し隠しを反映
   if(typeof recomputeTalked === "function") recomputeTalked();   // 「話した数」を今日のピンから再計算
 }
 
@@ -1840,6 +1850,9 @@ function initHomeMap(){
     keyboardShortcuts:false, clickableIcons:false
   });
   renderPins();
+  // ズームが変わるたび：拡大ならコメント表示／縮小ならピンだけ（初回もidleで反映）
+  homeMap.addListener("zoom_changed", syncLabelZoom);
+  google.maps.event.addListenerOnce(homeMap, "idle", syncLabelZoom);
   // ホームのまま地図の家をタップ＝その地点にピン（openNewPin。吹き出しは homeMap に乗せる＝唯一の地図）
   homeMap.addListener("click", function(e){
     openNewPin(e.latLng.lat(), e.latLng.lng(), null, false, homeMap);
